@@ -1,0 +1,33 @@
+name: 问题反馈
+description: 反馈起身 RiseUp 的异常行为
+title: "[问题] "
+body:
+  - type: markdown
+    attributes:
+      value: 请勿上传个人 state.json、未脱敏 CSV、凭据或含个人信息的截图。
+  - type: input
+    id: version
+    attributes:
+      label: 应用版本
+      placeholder: 例如 1.0.0（设置中查看）
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: macOS 版本与芯片
+      placeholder: 例如 macOS 15 / M2 或 macOS 14 / Intel
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: 预期与实际结果
+    validations:
+      required: true
