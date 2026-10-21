@@ -86,8 +86,8 @@ struct RootView: View {
             HStack(spacing: 9) {
                 BrandMark().frame(width: 37, height: 39)
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("起身").font(.custom("PingFang SC", size: 25).weight(.semibold)).tracking(3)
-                    Text("RISEUP").font(.system(size: 9, weight: .semibold, design: .rounded)).tracking(3).foregroundStyle(Palette.muted)
+                    Text("缓芽").font(.custom("PingFang SC", size: 25).weight(.semibold)).tracking(3)
+                    Text("huǎn yá").font(.system(size: 9, weight: .semibold, design: .rounded)).tracking(1.8).foregroundStyle(Palette.muted)
                 }
             }.padding(.leading, 25).padding(.top, 31).padding(.bottom, 47)
             Text("为自己，留一点时间").font(.system(size: 10)).foregroundStyle(Palette.muted).padding(.horizontal, 25).padding(.bottom, 15)
@@ -140,7 +140,7 @@ struct RootView: View {
         switch model.page {
         case "提醒计划": return "找到适合你的节奏，让休息自然发生。"
         case "健康统计": return "每一次小小的休息，都值得被看见。"
-        case "设置": return "让起身，更合你的习惯。"
+        case "设置": return "让缓芽，更合你的习惯。"
         default: return "小习惯，让好状态发生。"
         }
     }
@@ -151,7 +151,7 @@ struct BrandMark: View {
         Image(nsImage: BrandArtwork.markImage)
             .resizable()
             .aspectRatio(contentMode: .fit)
-            .accessibilityLabel("起身 RiseUp")
+            .accessibilityLabel("缓芽 · huǎn yá")
     }
 }
 
@@ -470,7 +470,7 @@ struct StatisticsView: View {
                     Text("只统计完成并确认的护眼与拉伸休息").font(.system(size: 10)).foregroundStyle(Palette.muted)
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }.padding(24).background(Palette.sidebar).clipShape(RoundedRectangle(cornerRadius: 16))
-            HStack { Text("使用与工作时长为应用运行期间的计时估算，暂停、休息与睡眠不累计。\n起身不使用摄像头或传感器识别坐姿；退出应用后不计时、不提醒。").font(.system(size: 10)).foregroundStyle(Palette.muted).lineSpacing(5); Spacer(); Button { model.exportCSV() } label: { Label("导出 CSV", systemImage: "square.and.arrow.up") }.buttonStyle(QuietButton()) }
+            HStack { Text("使用与工作时长为应用运行期间的计时估算，暂停、休息与睡眠不累计。\n缓芽不使用摄像头或传感器识别坐姿；退出应用后不计时、不提醒。").font(.system(size: 10)).foregroundStyle(Palette.muted).lineSpacing(5); Spacer(); Button { model.exportCSV() } label: { Label("导出 CSV", systemImage: "square.and.arrow.up") }.buttonStyle(QuietButton()) }
         }
     }
     var week: [(String, DayRecord)] { (0..<7).reversed().map { offset in let date = Calendar.current.date(byAdding: .day, value: -offset, to: model.now)!; let key = dayKey(date); return (key, model.engine.saved.days[key] ?? DayRecord()) } }
@@ -528,7 +528,7 @@ struct SettingsView: View {
                 settingRow("全局快捷键 · \(model.shortcutStatus)", detail: "⌃⌥⌘W 记默认杯量；⌃⌥⌘R 开始拉伸休息。") {
                     Toggle("全局快捷键", isOn: boolBinding(\.globalShortcutsEnabled)).labelsHidden().toggleStyle(.switch).disabled(model.isPreview)
                 }
-                Text("快捷键默认关闭，只注册指定组合，不读取其他键盘输入。起身运行时可用；若组合被占用，会显示提示。").font(.system(size: 10)).foregroundStyle(Palette.muted)
+                Text("快捷键默认关闭，只注册指定组合，不读取其他键盘输入。缓芽运行时可用；若组合被占用，会显示提示。").font(.system(size: 10)).foregroundStyle(Palette.muted)
             }
             settingsGroup("启动与后台", symbol: "power") {
                 settingRow("登录时启动 · \(model.launchAtLoginStatus.description)", detail: "开启后，登录 Mac 自动在菜单栏运行，不弹出主窗口。") {
@@ -564,7 +564,7 @@ struct SettingsView: View {
             HStack(alignment: .top, spacing: 14) {
                 BrandMark().frame(width: 35, height: 37)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("起身 RiseUp  ·  \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0")").font(.system(size: 13, weight: .medium))
+                    Text("缓芽 · huǎn yá  ·  \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0")").font(.system(size: 13, weight: .medium))
                     Text("一个照顾自己的小小提醒。关闭窗口后仍在菜单栏运行，按 ⌘Q 完全退出。\n所有数据保存在 ~/Library/Application Support/RiseUp，不联网、不上传。\n电脑睡眠时不提醒，唤醒后重新计时；可选择登录时自动启动。").font(.system(size: 10)).foregroundStyle(Palette.muted).lineSpacing(5)
                 }
             }.padding(.vertical, 4)
@@ -615,7 +615,7 @@ struct SettingsView: View {
         settingsGroup("忙碌模式", symbol: "moon") {
             Text(model.status).font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.green)
             BusyControls(model: model)
-            Text("忙碌期间不弹提醒、不累计工作时间；结束后重新计时。忙碌结束不会解除手动暂停。退出起身后，本次忙碌倒计时不保留。").font(.system(size: 10)).foregroundStyle(Palette.muted)
+            Text("忙碌期间不弹提醒、不累计工作时间；结束后重新计时。忙碌结束不会解除手动暂停。退出缓芽后，本次忙碌倒计时不保留。").font(.system(size: 10)).foregroundStyle(Palette.muted)
             Divider().overlay(Palette.line)
             settingRow("在这些应用中暂停", detail: "仅当指定应用在前台时暂停；切换离开后重新安排提醒。") {
                 Button("添加应用…") { model.chooseBusyApplication() }.buttonStyle(QuietButton())
@@ -844,7 +844,7 @@ struct ReminderPopup: View {
         ScrollView {
         VStack(spacing: model.reminderKinds.count > 1 ? 15 : 17) {
             HStack {
-                Text("起身  /  RISEUP").font(.system(size: 10, weight: .medium)).tracking(1.7).foregroundStyle(Palette.muted)
+                Text("缓芽  /  huǎn yá").font(.system(size: 10, weight: .medium)).tracking(1.7).foregroundStyle(Palette.muted)
                 Spacer()
                 Button { model.snoozeCurrent() } label: { Image(systemName: "xmark").font(.system(size: 11)) }.buttonStyle(.plain).accessibilityLabel("全部稍后 5 分钟")
             }
@@ -943,7 +943,7 @@ struct MenuContent: View {
     @ObservedObject var model: AppModel
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
-            HStack(spacing: 10) { BrandMark().frame(width: 31, height: 33); VStack(alignment: .leading, spacing: 3) { Text("起身 RiseUp").font(.system(size: 14, weight: .semibold)); Text(model.status).font(.system(size: 10)).foregroundStyle(Palette.muted) }; Spacer() }
+            HStack(spacing: 10) { BrandMark().frame(width: 31, height: 33); VStack(alignment: .leading, spacing: 3) { Text("缓芽 · huǎn yá").font(.system(size: 14, weight: .semibold)); Text(model.status).font(.system(size: 10)).foregroundStyle(Palette.muted) }; Spacer() }
             HStack { Text(model.nextBatch.map { "下次\($0.title)" } ?? "下次提醒").font(.system(size: 11)).foregroundStyle(Palette.muted); Spacer(); Text(model.countdown).font(.system(size: 25, weight: .light, design: .rounded)).monospacedDigit() }
             Divider()
             HStack { Label("\(model.today.waterML) ml", systemImage: "drop"); Spacer(); Label("休息 \(model.today.breakCount) 次", systemImage: "leaf") }.font(.system(size: 11)).foregroundStyle(Palette.muted)
@@ -953,9 +953,9 @@ struct MenuContent: View {
             }
             HStack { Button("+ 默认杯量") { model.logWater() }.buttonStyle(QuietButton()); Button("起身休息") { model.quickRest() }.buttonStyle(QuietButton()) }
             BusyControls(model: model)
-            HStack { Button(model.hasManualPause ? "继续提醒" : "暂停 15 分钟") { model.togglePause(minutes: 15) }.buttonStyle(.plain); Spacer(); Button("打开起身 ↗") { model.showMainWindow?() }.buttonStyle(.plain) }.font(.system(size: 11)).foregroundStyle(Palette.green)
+            HStack { Button(model.hasManualPause ? "继续提醒" : "暂停 15 分钟") { model.togglePause(minutes: 15) }.buttonStyle(.plain); Spacer(); Button("打开缓芽 ↗") { model.showMainWindow?() }.buttonStyle(.plain) }.font(.system(size: 11)).foregroundStyle(Palette.green)
             Divider()
-            Button("退出起身  ⌘Q") { NSApplication.shared.terminate(nil) }.buttonStyle(.plain).font(.system(size: 10)).foregroundStyle(Palette.muted)
+            Button("退出缓芽  ⌘Q") { NSApplication.shared.terminate(nil) }.buttonStyle(.plain).font(.system(size: 10)).foregroundStyle(Palette.muted)
         }.padding(20).frame(width: 303).foregroundStyle(Palette.ink).background(Palette.background).preferredColorScheme(.light)
     }
 }

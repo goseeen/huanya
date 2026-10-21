@@ -13,7 +13,7 @@ enum BrandArtwork {
             return true
         }
         image.isTemplate = style == .menuBar
-        image.accessibilityDescription = "起身 RiseUp"
+        image.accessibilityDescription = "缓芽 · huǎn yá"
         return image
     }
 

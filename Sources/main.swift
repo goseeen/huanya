@@ -63,7 +63,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
 
     func buildWindow() {
         mainWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1110, height: 810), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
-        mainWindow.title = "起身 RiseUp"
+        mainWindow.title = "缓芽 · huǎn yá"
         mainWindow.titleVisibility = .hidden
         mainWindow.titlebarAppearsTransparent = true
         mainWindow.backgroundColor = NSColor(red: 0.97, green: 0.97, blue: 0.95, alpha: 1)
@@ -113,13 +113,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
         let appMenuItem = NSMenuItem()
         menu.addItem(appMenuItem)
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "关于起身", action: #selector(showAbout), keyEquivalent: "")
+        appMenu.addItem(withTitle: "关于缓芽", action: #selector(showAbout), keyEquivalent: "")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "显示起身", action: #selector(showMain), keyEquivalent: "0")
+        appMenu.addItem(withTitle: "显示缓芽", action: #selector(showMain), keyEquivalent: "0")
         appMenu.addItem(withTitle: "设置…", action: #selector(showSettings), keyEquivalent: ",")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "隐藏起身", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
-        appMenu.addItem(withTitle: "退出起身", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "隐藏缓芽", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: "退出缓芽", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appMenuItem.submenu = appMenu
         let editItem = NSMenuItem()
         let editMenu = NSMenu(title: "编辑")
@@ -133,7 +133,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
         statusItem.button?.image = BrandArtwork.menuImage
         statusItem.button?.target = self
         statusItem.button?.action = #selector(togglePopover)
-        statusItem.button?.toolTip = "起身 · 休息一下，好状态继续"
+        statusItem.button?.toolTip = "缓芽 · 休息一下，好状态继续"
         popover = NSPopover()
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(rootView: MenuContent(model: model))
@@ -144,7 +144,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
         button.title = model.preferences.showMenuCountdown ? " \(model.menuBarText)" : ""
         button.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
         button.imagePosition = .imageLeading
-        button.toolTip = "起身 · \(model.status)" + (model.nextBatch.map { " · 下次\($0.title) \(model.countdown)" } ?? "")
+        button.toolTip = "缓芽 · \(model.status)" + (model.nextBatch.map { " · 下次\($0.title) \(model.countdown)" } ?? "")
         button.setAccessibilityLabel(button.toolTip)
     }
 
@@ -155,7 +155,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
         NSApplication.shared.activate(ignoringOtherApps: true)
     }
     @objc func showSettings() { model.page = "设置"; showMain() }
-    @objc func showAbout() { NSApplication.shared.orderFrontStandardAboutPanel(options: [.applicationName: "起身 RiseUp", .applicationVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0", .credits: NSAttributedString(string: "工作很重要，你也是。\n本地运行 · 无需登录 · 不联网")]) }
+    @objc func showAbout() { NSApplication.shared.orderFrontStandardAboutPanel(options: [.applicationName: "缓芽 · huǎn yá", .applicationVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0", .credits: NSAttributedString(string: "工作很重要，你也是。\n本地运行 · 无需登录 · 不联网")]) }
     @objc func togglePopover() {
         if popover.isShown { popover.performClose(nil) }
         else if let button = statusItem.button { popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY) }
@@ -170,7 +170,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
             reminderWindow.setFrameOrigin(NSPoint(x: frame.maxX - 434, y: frame.maxY - model.reminderPanelHeight - 24))
         } else { reminderWindow.center() }
         reminderWindow.orderFrontRegardless()
-        NSAccessibility.post(element: reminderWindow as Any, notification: .announcementRequested, userInfo: [.announcement: "起身：\(model.reminderKinds.map(\.title).joined(separator: "，"))", .priority: NSAccessibilityPriorityLevel.medium.rawValue])
+        NSAccessibility.post(element: reminderWindow as Any, notification: .announcementRequested, userInfo: [.announcement: "缓芽：\(model.reminderKinds.map(\.title).joined(separator: "，"))", .priority: NSAccessibilityPriorityLevel.medium.rawValue])
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showMain(); return true }

@@ -285,7 +285,7 @@ final class AppModel: ObservableObject {
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url, let bundle = Bundle(url: url), let identifier = bundle.bundleIdentifier else { return }
-        guard identifier != Bundle.main.bundleIdentifier && !identifier.hasPrefix("app.riseup.") else { notice = "起身自身无需加入暂停列表。"; return }
+        guard identifier != Bundle.main.bundleIdentifier && !identifier.hasPrefix("app.riseup.") else { notice = "缓芽自身无需加入暂停列表。"; return }
         let name = FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
         editPreferences { $0.busyApplications.append(BusyApplication(bundleIdentifier: identifier, name: name)) }
     }
@@ -462,7 +462,7 @@ final class AppModel: ObservableObject {
             if !enabled && loginManager.status != .disabled { try loginManager.unregister() }
         } catch { notice = "登录时启动设置未能完成：\(error.localizedDescription)" }
         refreshLoginStatus()
-        if launchAtLoginStatus == .requiresApproval { notice = "请在系统登录项设置中允许起身自动启动。" }
+        if launchAtLoginStatus == .requiresApproval { notice = "请在系统登录项设置中允许缓芽自动启动。" }
     }
     func openLoginSettings() { if !isPreview { loginManager.openSettings() } }
 
@@ -499,7 +499,7 @@ final class AppModel: ObservableObject {
                 let delivery = warning ? batch.dueAt.addingTimeInterval(-Double(preferences.prewarningSeconds)) : batch.dueAt
                 if warning && delivery <= date { continue }
                 let content = UNMutableNotificationContent()
-                content.title = warning ? "起身 · 稍后休息一下" : "起身 · \(batch.title)"
+                content.title = warning ? "缓芽 · 稍后休息一下" : "缓芽 · \(batch.title)"
                 content.body = warning ? "\(preferences.prewarningSeconds) 秒后提醒\(batch.title)，可以准备收尾了。" : (batch.kinds.count > 1 ? "这几项提醒时间接近，放在一起了。点开后分别确认。" : batch.kinds[0].message)
                 content.categoryIdentifier = warning ? "prewarning" : (batch.kinds == [.water] ? "water" : "rest")
                 content.userInfo = ["kinds": batch.kinds.map(\.rawValue), "prewarning": warning]
@@ -563,7 +563,7 @@ final class AppModel: ObservableObject {
     }
     func exportCSV() {
         let panel = NSSavePanel()
-        panel.nameFieldStringValue = "起身-统计.csv"
+        panel.nameFieldStringValue = "缓芽-统计.csv"
         panel.allowedContentTypes = [.commaSeparatedText]
         guard panel.runModal() == .OK, let url = panel.url else { return }
         var csv = "\u{FEFF}日期,饮水毫升,喝水次数,护眼次数,拉伸次数,工作分钟,休息秒数,最长一轮使用估算分钟（含旧版历史估算）,到期提醒项目,延后项目,主动跳过项目" + (0..<24).map { ",\($0)时工作分钟" }.joined() + "\n"
