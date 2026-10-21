@@ -15,7 +15,7 @@
 <p align="center">
   <a href="#功能">功能</a>&nbsp; · &nbsp;
   <a href="#从源码运行">从源码运行</a>&nbsp; · &nbsp;
-  <a href="https://github.com/goseeen/riseup-release/issues">反馈建议</a>
+  <a href="https://github.com/goseeen/huanya/issues">反馈建议</a>
 </p>
 
 <br>
@@ -97,7 +97,7 @@ open "dist/缓芽.app"
 ```
 
 > **1.0.2 · 发布准备中**  
-> 当前源码为 1.0.2（构建 9），统一使用新名称，并保留自定义休息时长与图表悬浮提示。正式安装包尚未在 GitHub 发布，发布后可在 [Releases](https://github.com/goseeen/riseup-release/releases) 选择 Intel 或 Apple 芯片版本。
+> 当前源码为 1.0.2（构建 9），统一使用新名称，并保留自定义休息时长与图表悬浮提示。正式安装包尚未在 GitHub 发布，发布后可在 [Releases](https://github.com/goseeen/huanya/releases) 选择 Intel 或 Apple 芯片版本。
 
 ## 本地数据、备份与隐私
 
@@ -164,7 +164,7 @@ zsh scripts/package.sh arm64    # 仅 Apple 芯片
 
 ## 参与与许可
 
-欢迎通过 [Issues](https://github.com/goseeen/riseup-release/issues) 反馈问题或建议。见 [开发约定](CONTRIBUTING.md)、[更新记录](CHANGELOG.md) 与 [发布准备](docs/PUBLISHING.md)。
+欢迎通过 [Issues](https://github.com/goseeen/huanya/issues) 反馈问题或建议。见 [开发约定](CONTRIBUTING.md)、[更新记录](CHANGELOG.md) 与 [发布准备](docs/PUBLISHING.md)。
 
 项目代码、文档与项目自制图形采用 [MIT License](LICENSE)，允许使用、修改与再分发，包括商业使用，需保留相应版权与许可声明。图标、人物、植物与动作图形在项目开发中由 AI 辅助制作，制作依据及系统资源边界见 [ASSETS.md](ASSETS.md) 和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。名称与标识不因版权许可而授予商标权。
 
