@@ -162,7 +162,16 @@ zsh scripts/package.sh arm64    # 仅 Apple 芯片
 
 欢迎通过 [Issues](https://github.com/sowhatJ/riseup-release/issues) 反馈问题或建议。见 [开发约定](CONTRIBUTING.md)、[更新记录](CHANGELOG.md) 与 [发布准备](docs/PUBLISHING.md)。
 
-代码采用 [MIT License](LICENSE)。图形与系统资源的范围、来源说明及公开前待确认事项见 [ASSETS.md](ASSETS.md) 和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。名称与标识不因代码许可而授予商标权。
+项目代码、文档与项目自制图形采用 [MIT License](LICENSE)，允许使用、修改与再分发，包括商业使用，需保留相应版权与许可声明。图标、人物、植物与动作图形在项目开发中由 AI 辅助制作，制作依据及系统资源边界见 [ASSETS.md](ASSETS.md) 和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。名称与标识不因版权许可而授予商标权。
+
+## 使用须知与免责声明
+
+- **日常提醒，不替代医疗建议。** 饮水目标与拉伸图示是一般提示，请按自身情况调整；活动中如有不适应停止。
+- **统计是估算。** 应用不检测实际坐姿或身体活动；系统状态与权限可能影响提醒，请勿依赖它处理紧急或关键事项。
+- **记录保存在本机。** 更新、迁移或清理数据前建议备份；提交反馈前请移除个人信息。
+- **按现状提供。** 担保与责任限制见 MIT 许可原文，并以适用法律允许的范围为限。
+
+完整说明及素材权利反馈方式见 [使用说明与免责声明](DISCLAIMER.md)。
 
 ---
 
