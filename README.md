@@ -1,4 +1,6 @@
-<h1 align="center">起身 RiseUp</h1>
+<h1 align="center">缓芽 · huǎn yá</h1>
+
+<p align="center"><sub>中文名「缓芽」，拼音 huǎn yá；文件名使用 huanya。</sub></p>
 
 <p align="center"><strong>工作很重要，你也是。</strong></p>
 <p align="center">喝一杯水，望一会儿远处，起身舒展一下。<br>一个安静陪伴工作日的 macOS 休息提醒应用。</p>
@@ -13,7 +15,7 @@
 <p align="center">
   <a href="#功能">功能</a>&nbsp; · &nbsp;
   <a href="#从源码运行">从源码运行</a>&nbsp; · &nbsp;
-  <a href="https://github.com/sowhatJ/riseup-release/issues">反馈建议</a>
+  <a href="https://github.com/goseeen/riseup-release/issues">反馈建议</a>
 </p>
 
 <br>
@@ -21,11 +23,11 @@
 <table>
   <tr>
     <td width="70%" align="center" valign="middle">
-      <a href="docs/images/dashboard.png"><img src="docs/images/dashboard.png" width="520" alt="起身今日概览：提醒倒计时、饮水与休息进度，使用演示数据"></a>
+      <a href="docs/images/dashboard.png"><img src="docs/images/dashboard.png" width="520" alt="缓芽今日概览：提醒倒计时、饮水与休息进度，使用演示数据"></a>
       <p><sub>今日概览 · 把小习惯，看得见</sub></p>
     </td>
     <td width="30%" align="center" valign="middle">
-      <a href="docs/images/stretch-guide.png"><img src="docs/images/stretch-guide.png" width="230" alt="起身拉伸提醒：动作引导与休息倒计时，使用演示数据"></a>
+      <a href="docs/images/stretch-guide.png"><img src="docs/images/stretch-guide.png" width="230" alt="缓芽拉伸提醒：动作引导与休息倒计时，使用演示数据"></a>
       <p><sub>休息引导 · 留一刻，给自己</sub></p>
     </td>
   </tr>
@@ -37,12 +39,12 @@
 
 **专注工作，也记得照顾自己。**
 
-喝水、远眺、起身活动。起身用几个简单的提醒，帮你在忙碌中留一点时间给自己。
+喝水、远眺、起身活动。缓芽用几个简单的提醒，帮你在忙碌中留一点时间给自己。
 
 ### 三种提醒，找到自己的节奏
 
 **喝一杯水**  
-忙起来容易忘记喝水，让起身帮你记着。默认每 30 分钟提醒，间隔、每杯水量和每日目标都能调整。随手记录，记错了也能撤销最近一杯。
+忙起来容易忘记喝水，让缓芽帮你记着。默认每 30 分钟提醒，间隔、每杯水量和每日目标都能调整。随手记录，记错了也能撤销最近一杯。
 
 **让目光离开屏幕**  
 默认每 20 分钟，提醒你望一会儿远处。跟着可调整的倒计时休息片刻，再回到手头的事情。
@@ -58,9 +60,9 @@
 
 工作时段、周末规则和指定应用暂停都能自行设置。电脑空闲或锁屏时，提醒也会跟着暂停。桌面浮窗或系统通知，选择你习惯的方式。
 
-### 关掉窗口，也有起身陪着你
+### 关掉窗口，也有缓芽陪着你
 
-起身可以安静待在菜单栏，随时查看下一次提醒、记录一杯水，或开始一次休息。
+缓芽可以安静待在菜单栏，随时查看下一次提醒、记录一杯水，或开始一次休息。
 
 喜欢更快捷的操作，还可以开启全局快捷键：`⌃⌥⌘W` 记录默认杯量，`⌃⌥⌘R` 开始拉伸休息。菜单栏倒计时、登录时自动启动与全局快捷键默认关闭，由你决定是否开启。按 `⌘Q` 可完全退出应用。
 
@@ -80,7 +82,7 @@
 
 ### 你的习惯，留在自己的电脑里
 
-无需注册，没有账号，也不上传记录。设置和统计保存在本机，让起身成为一个简单、私人的日常工具。
+无需注册，没有账号，也不上传记录。设置和统计保存在本机，让缓芽成为一个简单、私人的日常工具。
 
 节假日识别和日历读取尚未接入。目标可自行调整，应用提供一般提醒与记录，不提供医疗诊断。
 
@@ -91,11 +93,11 @@
 ```sh
 zsh scripts/test.sh
 zsh scripts/build.sh
-open "dist/起身 RiseUp.app"
+open "dist/缓芽.app"
 ```
 
-> **1.0.1 · 发布准备中**  
-> 当前源码为 1.0.1（构建 8），包含自定义休息时长与图表悬浮提示。正式安装包尚未在 GitHub 发布，发布后可在 [Releases](https://github.com/sowhatJ/riseup-release/releases) 选择 Intel 或 Apple 芯片版本。
+> **1.0.2 · 发布准备中**  
+> 当前源码为 1.0.2（构建 9），统一使用新名称，并保留自定义休息时长与图表悬浮提示。正式安装包尚未在 GitHub 发布，发布后可在 [Releases](https://github.com/goseeen/riseup-release/releases) 选择 Intel 或 Apple 芯片版本。
 
 ## 本地数据、备份与隐私
 
@@ -104,6 +106,8 @@ open "dist/起身 RiseUp.app"
 ```text
 ~/Library/Application Support/RiseUp/state.json
 ```
+
+项目原名为“起身 RiseUp”。更名后沿用原有应用标识和上述数据目录，以继续读取已有设置与记录；目录中的 `RiseUp` 是兼容标识。名称说明见 [命名记录](docs/NAMING.md)。
 
 每日汇总持续保存；活动详情、提醒操作详情和连续工作时段各最多保留最近 1000 条 / 段。按本机日期划分每天，采用原子写入。若数据文件损坏，会提示并保留原文件。
 
@@ -118,10 +122,10 @@ open "dist/起身 RiseUp.app"
 
 | 电脑 | 安装包名称 |
 | --- | --- |
-| Intel Mac | `RiseUp-1.0.1-Intel-x86_64.dmg` |
-| M 系列 Apple 芯片 Mac | `RiseUp-1.0.1-AppleSilicon-arm64.dmg` |
+| Intel Mac | `huanya-1.0.2-Intel-x86_64.dmg` |
+| M 系列 Apple 芯片 Mac | `huanya-1.0.2-AppleSilicon-arm64.dmg` |
 
-打开 DMG，将“起身 RiseUp.app”拖到 Applications，弹出映像后从“应用程序”启动。更新前先退出正在运行的起身。
+打开 DMG，将“缓芽.app”拖到 Applications，弹出映像后从“应用程序”启动。更新前先退出正在运行的应用；从旧版升级时，用新应用替换“起身 RiseUp.app”，不要同时保留并运行两个副本。个人设置与统计保存在上述数据目录中。
 
 当前构建使用本地临时签名，尚未经过 Apple Developer ID 签名或公证。首次启动如被系统阻止，请确认来源，并按系统“隐私与安全性”的提示处理。随包的 `SHA256SUMS.txt` 用于检查下载完整性。
 
@@ -147,12 +151,12 @@ zsh scripts/package.sh x86_64   # 仅 Intel
 zsh scripts/package.sh arm64    # 仅 Apple 芯片
 ```
 
-安装包输出至 `dist/releases/1.0.1/`。同名文件已存在时停止，避免覆盖历史包。脚本验证校验和，并只读挂载 DMG 检查架构、签名、版本与安装入口。可用 `zsh scripts/verify-packages.sh` 再次验证。
+安装包输出至 `dist/releases/1.0.2/`。同名文件已存在时停止，避免覆盖历史包。脚本验证校验和，并只读挂载 DMG 检查架构、签名、版本与安装入口。可用 `zsh scripts/verify-packages.sh` 再次验证。
 
 导出界面并运行原生交互检查：
 
 ```sh
-"dist/起身 RiseUp.app/Contents/MacOS/RiseUp" --capture /tmp/riseup-preview
+"dist/缓芽.app/Contents/MacOS/RiseUp" --capture /tmp/huanya-preview
 ```
 
 预览模式使用演示数据，不读写个人统计，不注册系统通知或登录项。重新生成应用图标可执行 `zsh scripts/icon.sh`。
@@ -160,7 +164,7 @@ zsh scripts/package.sh arm64    # 仅 Apple 芯片
 
 ## 参与与许可
 
-欢迎通过 [Issues](https://github.com/sowhatJ/riseup-release/issues) 反馈问题或建议。见 [开发约定](CONTRIBUTING.md)、[更新记录](CHANGELOG.md) 与 [发布准备](docs/PUBLISHING.md)。
+欢迎通过 [Issues](https://github.com/goseeen/riseup-release/issues) 反馈问题或建议。见 [开发约定](CONTRIBUTING.md)、[更新记录](CHANGELOG.md) 与 [发布准备](docs/PUBLISHING.md)。
 
 项目代码、文档与项目自制图形采用 [MIT License](LICENSE)，允许使用、修改与再分发，包括商业使用，需保留相应版权与许可声明。图标、人物、植物与动作图形在项目开发中由 AI 辅助制作，制作依据及系统资源边界见 [ASSETS.md](ASSETS.md) 和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。名称与标识不因版权许可而授予商标权。
 
