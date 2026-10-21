@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>CFBundleExecutable</key><string>RiseUp</string>
+    <key>CFBundleIdentifier</key><string>app.riseup.desktop</string>
+    <key>CFBundleName</key><string>RiseUp</string>
+    <key>CFBundleDisplayName</key><string>起身 RiseUp</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>1.0.1</string>
+    <key>CFBundleVersion</key><string>8</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
+    <key>LSMinimumSystemVersion</key><string>13.0</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>NSSupportsAutomaticTermination</key><false/>
+    <key>LSMultipleInstancesProhibited</key><true/>
+    <key>NSHumanReadableCopyright</key><string>起身 RiseUp · 工作很重要，你也是。</string>
+</dict></plist>
