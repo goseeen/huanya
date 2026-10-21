@@ -1,0 +1,29 @@
+.build/
+dist/
+.DS_Store
+
+# Local application data, exports and installer artifacts
+state.json
+state.json.*
+*.csv
+*.app/
+*.dmg
+*.zip
+*.log
+
+# Local credentials and signing materials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.mobileprovision
+
+# Local editor / assistant state
+.idea/
+.vscode/
+.agents/
+.codex/
+.aws/
