@@ -17,11 +17,11 @@ trap 'if [[ -n "$RISEUP_MOUNT" ]]; then hdiutil detach -quiet "$RISEUP_MOUNT" ||
 
 for RISEUP_ARCH in "${RISEUP_ARCHES[@]}"; do
     if [[ "$RISEUP_ARCH" == x86_64 ]]; then RISEUP_LABEL=Intel; else RISEUP_LABEL=AppleSilicon; fi
-    RISEUP_DMG="$RISEUP_PACKAGE_ROOT/RiseUp-$RISEUP_VERSION-$RISEUP_LABEL-$RISEUP_ARCH.dmg"
+    RISEUP_DMG="$RISEUP_PACKAGE_ROOT/huanya-$RISEUP_VERSION-$RISEUP_LABEL-$RISEUP_ARCH.dmg"
     RISEUP_MOUNT="$RISEUP_ROOT/.build/verify-$RISEUP_ARCH-$$"
     mkdir -p "$RISEUP_MOUNT"
     hdiutil attach -readonly -nobrowse -noautoopen -quiet -mountpoint "$RISEUP_MOUNT" "$RISEUP_DMG"
-    RISEUP_APP="$RISEUP_MOUNT/起身 RiseUp.app"
+    RISEUP_APP="$RISEUP_MOUNT/缓芽.app"
     RISEUP_BINARY="$RISEUP_APP/Contents/MacOS/RiseUp"
     [[ "$(lipo -archs "$RISEUP_BINARY")" == "$RISEUP_ARCH" ]]
     [[ "$(/usr/libexec/PlistBuddy -c 'Print :LSArchitecturePriority:0' "$RISEUP_APP/Contents/Info.plist")" == "$RISEUP_ARCH" ]]
@@ -30,7 +30,7 @@ for RISEUP_ARCH in "${RISEUP_ARCHES[@]}"; do
     [[ "$(readlink "$RISEUP_MOUNT/Applications")" == /Applications ]]
     [[ -s "$RISEUP_MOUNT/安装说明.txt" ]]
     codesign --verify --deep --strict "$RISEUP_APP"
-    cmp "$RISEUP_BINARY" "$RISEUP_ROOT/dist/$RISEUP_ARCH/起身 RiseUp.app/Contents/MacOS/RiseUp"
+    cmp "$RISEUP_BINARY" "$RISEUP_ROOT/dist/$RISEUP_ARCH/缓芽.app/Contents/MacOS/RiseUp"
     file "$RISEUP_BINARY"
     hdiutil detach -quiet "$RISEUP_MOUNT"
     RISEUP_MOUNT=""

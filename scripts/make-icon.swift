@@ -15,6 +15,6 @@ struct MakeIcon {
         let parent = URL(fileURLWithPath: output).deletingLastPathComponent()
         try BrandArtwork.png(size: 256, style: .brandMark)!.write(to: parent.appendingPathComponent("brand-mark-preview.png"))
         try BrandArtwork.png(size: 144, style: .menuBar)!.write(to: parent.appendingPathComponent("menu-glyph-preview.png"))
-        print("Icon artwork created from the shared RiseUp vector drawing")
+        print("Icon artwork created from the shared Huanya vector drawing")
     }
 }

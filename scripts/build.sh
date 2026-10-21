@@ -7,9 +7,9 @@ case "$RISEUP_ARCH" in
     *) echo "不支持的架构：$RISEUP_ARCH；请使用 x86_64 或 arm64。" >&2; exit 2 ;;
 esac
 if (( $# == 0 )); then
-    APP="$PWD/dist/起身 RiseUp.app"
+    APP="$PWD/dist/缓芽.app"
 else
-    APP="${2:-$PWD/dist/$RISEUP_ARCH/起身 RiseUp.app}"
+    APP="${2:-$PWD/dist/$RISEUP_ARCH/缓芽.app}"
 fi
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" .build/module-cache
 source scripts/toolchain.sh

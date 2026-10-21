@@ -18,7 +18,7 @@ mkdir -p "$RISEUP_PACKAGE_ROOT" "$RISEUP_STAGING_ROOT"
 
 for RISEUP_ARCH in "${RISEUP_ARCHES[@]}"; do
     /bin/zsh scripts/build.sh "$RISEUP_ARCH"
-    RISEUP_APP="$PWD/dist/$RISEUP_ARCH/起身 RiseUp.app"
+    RISEUP_APP="$PWD/dist/$RISEUP_ARCH/缓芽.app"
     if [[ "$RISEUP_ARCH" == x86_64 ]]; then
         RISEUP_LABEL="Intel"
         RISEUP_DEVICE="Intel 处理器 Mac"
@@ -28,18 +28,19 @@ for RISEUP_ARCH in "${RISEUP_ARCHES[@]}"; do
     fi
     RISEUP_STAGE="$RISEUP_STAGING_ROOT/$RISEUP_ARCH"
     mkdir -p "$RISEUP_STAGE"
-    ditto "$RISEUP_APP" "$RISEUP_STAGE/起身 RiseUp.app"
+    ditto "$RISEUP_APP" "$RISEUP_STAGE/缓芽.app"
     ln -s /Applications "$RISEUP_STAGE/Applications"
     cat > "$RISEUP_STAGE/安装说明.txt" <<EOF
-起身 RiseUp $RISEUP_VERSION · $RISEUP_LABEL / $RISEUP_ARCH
+缓芽 · huǎn yá $RISEUP_VERSION · $RISEUP_LABEL / $RISEUP_ARCH
 
 适用电脑：$RISEUP_DEVICE
 系统要求：macOS 13 或更新版本。
 
 安装：
-1. 将「起身 RiseUp.app」拖到旁边的 Applications 文件夹。
-2. 弹出此磁盘映像，再从「应用程序」中打开「起身 RiseUp」。
-3. 两个架构版本选装与你的电脑匹配的一个即可。更新前请先退出正在运行的起身。
+1. 将「缓芽.app」拖到旁边的 Applications 文件夹。
+2. 弹出此磁盘映像，再从「应用程序」中打开「缓芽」。
+3. 两个架构版本选装与你的电脑匹配的一个即可。更新前请先退出正在运行的缓芽。
+4. 从旧名版本升级时，先退出「起身 RiseUp」，将「应用程序」中的旧应用移到废纸篓，再放入「缓芽.app」。只替换应用，不清理其数据目录；新旧版本共用设置与统计，请勿同时运行。
 
 首次打开：
 本包使用本地临时签名，尚未经过 Apple Developer ID 签名或公证。
@@ -62,19 +63,19 @@ for RISEUP_ARCH in "${RISEUP_ARCHES[@]}"; do
 统计数据只保存在本机 ~/Library/Application Support/RiseUp/state.json。
 本轮使用与工作时长属于计时估算，不识别实际坐姿。
 EOF
-    RISEUP_DMG="$RISEUP_PACKAGE_ROOT/RiseUp-$RISEUP_VERSION-$RISEUP_LABEL-$RISEUP_ARCH.dmg"
+    RISEUP_DMG="$RISEUP_PACKAGE_ROOT/huanya-$RISEUP_VERSION-$RISEUP_LABEL-$RISEUP_ARCH.dmg"
     if [[ -e "$RISEUP_DMG" ]]; then
         echo "安装包已存在，保留原文件：$RISEUP_DMG。请使用新的发布版本号。" >&2
         exit 1
     fi
-    hdiutil create -volname "起身 RiseUp $RISEUP_LABEL" -srcfolder "$RISEUP_STAGE" -format UDZO -ov "$RISEUP_DMG"
+    hdiutil create -volname "缓芽 · huǎn yá $RISEUP_LABEL" -srcfolder "$RISEUP_STAGE" -format UDZO -ov "$RISEUP_DMG"
     hdiutil verify -quiet "$RISEUP_DMG"
     echo "已打包：$RISEUP_DMG"
 done
 
 (
     cd "$RISEUP_PACKAGE_ROOT"
-    shasum -a 256 RiseUp-*.dmg > SHA256SUMS.txt
+    shasum -a 256 huanya-*.dmg > SHA256SUMS.txt
 )
 echo "指定架构的安装包已生成，SHA-256 校验值位于 $RISEUP_PACKAGE_ROOT/SHA256SUMS.txt。"
 /bin/zsh scripts/verify-packages.sh "${RISEUP_ARCHES[@]}"
