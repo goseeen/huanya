@@ -144,6 +144,7 @@ struct CoreTests {
         try FileManager.default.removeItem(at: temp)
         try firstBatchTests(start: start)
         try secondBatchTests(start: start)
+        foregroundPauseTests(start: start)
         try usageSessionTests()
         hourlyChartTests()
         print("PASS: \(count) assertions — scheduling, migration, idle, grouped reminders, prewarnings, water undo, persistence")
@@ -167,6 +168,91 @@ struct CoreTests {
         }
         check(HourlyWorkDetail.hour(at: -1, width: 740) == nil && HourlyWorkDetail.hour(at: 741, width: 740) == nil, "Pointer outside chart cannot select an hour")
         check(HourlyWorkDetail.hour(at: 0, width: 0) == nil && HourlyWorkDetail.hour(at: .nan, width: 740) == nil, "Invalid layout or pointer values are ignored")
+    }
+
+    static func foregroundPauseTests(start: Date) {
+        var saved = SavedState()
+        saved.preferences.mergeReminders = false
+        saved.preferences.water.intervalMinutes = 1
+        saved.preferences.eyes.intervalMinutes = 2
+        saved.preferences.stretch.intervalMinutes = 3
+        var e = ReminderEngine(saved: saved, now: start)
+        _ = advance(&e, from: start, seconds: 20)
+        e.setForegroundBlocked(true, now: start.addingTimeInterval(20))
+        check(advance(&e, from: start.addingTimeInterval(20), seconds: 600).isEmpty, "No reminders during a long foreground pause")
+        check(e.saved.days[dayKey(start)]?.workSeconds == 20, "Foreground pause excludes work time")
+        e.setForegroundBlocked(false, now: start.addingTimeInterval(620))
+        check(e.deadlines[.water] == start.addingTimeInterval(660), "Foreground pause retains water's remaining forty seconds")
+        check(e.deadlines[.eyes] == start.addingTimeInterval(720) && e.deadlines[.stretch] == start.addingTimeInterval(780), "Each plan retains its own remaining interval")
+        check(advance(&e, from: start.addingTimeInterval(620), seconds: 39).isEmpty, "Resume does not fire early")
+        check(e.advance(now: start.addingTimeInterval(660)) == [.water], "Resume fires exactly at remaining time")
+        e.setForegroundBlocked(true, now: start.addingTimeInterval(660))
+        _ = advance(&e, from: start.addingTimeInterval(660), seconds: 10)
+        check(!e.setForegroundBlocked(true, now: start.addingTimeInterval(670)), "Switching between configured apps keeps the same pause")
+        _ = advance(&e, from: start.addingTimeInterval(670), seconds: 10)
+        e.setForegroundBlocked(false, now: start.addingTimeInterval(680))
+        check(e.deadlines[.eyes] == start.addingTimeInterval(740), "Consecutive configured apps do not restart or consume the interval")
+
+        e = ReminderEngine(saved: saved, now: start)
+        _ = advance(&e, from: start, seconds: 10)
+        e.snooze(.water, now: start.addingTimeInterval(10))
+        e.setForegroundBlocked(true, now: start.addingTimeInterval(10))
+        _ = advance(&e, from: start.addingTimeInterval(10), seconds: 60)
+        var preferences = e.saved.preferences
+        preferences.mergeReminders = true
+        preferences.mergeWindowSeconds = 120
+        preferences.eyes.intervalMinutes = 4
+        e.updatePreferences(preferences, now: start.addingTimeInterval(70))
+        e.setForegroundBlocked(false, now: start.addingTimeInterval(70))
+        let batches = e.scheduledBatches(at: start.addingTimeInterval(70))
+        check(e.deadlines[.water] == start.addingTimeInterval(370), "Explicit snooze retains its entire remaining delay")
+        check(!batches.first!.kinds.contains(.water), "Merging cannot pull a paused snooze forward")
+        check(e.deadlines[.eyes] == start.addingTimeInterval(310), "Changing a plan while paused replaces only that plan's interval")
+        check(e.deadlines[.stretch] == start.addingTimeInterval(240), "Editing preferences preserves unchanged plans")
+
+        for reason in ["manual", "busy", "idle", "sleep"] {
+            e = ReminderEngine(saved: saved, now: start)
+            _ = advance(&e, from: start, seconds: 20)
+            e.setForegroundBlocked(true, now: start.addingTimeInterval(20))
+            switch reason {
+            case "manual": e.setPaused(true, now: start.addingTimeInterval(20))
+            case "busy": e.setBusy(minutes: 1, now: start.addingTimeInterval(20))
+            case "idle": e.updateIdle(secondsSinceInput: 600, now: start.addingTimeInterval(20))
+            default: e.setSleeping(true, now: start.addingTimeInterval(20))
+            }
+            _ = advance(&e, from: start.addingTimeInterval(20), seconds: 60)
+            switch reason {
+            case "manual": e.setPaused(false, now: start.addingTimeInterval(80))
+            case "busy": break
+            case "idle": e.updateIdle(secondsSinceInput: 0, now: start.addingTimeInterval(80))
+            default: e.setSleeping(false, now: start.addingTimeInterval(80))
+            }
+            _ = advance(&e, from: start.addingTimeInterval(80), seconds: 10)
+            e.setForegroundBlocked(false, now: start.addingTimeInterval(90))
+            check(e.deadlines[.water] == start.addingTimeInterval(150), "\(reason) overlap keeps its fresh interval instead of resurrecting an old countdown")
+        }
+
+        e = ReminderEngine(saved: saved, now: start)
+        _ = advance(&e, from: start, seconds: 20)
+        e.setForegroundBlocked(true, now: start.addingTimeInterval(20))
+        _ = e.advance(now: start.addingTimeInterval(600))
+        e.setForegroundBlocked(false, now: start.addingTimeInterval(600))
+        check(e.deadlines[.water] == start.addingTimeInterval(660), "Process suspension keeps the existing fresh-interval rule")
+        e = ReminderEngine(saved: saved, now: start)
+        _ = advance(&e, from: start, seconds: 20)
+        e.setForegroundBlocked(true, now: start.addingTimeInterval(20))
+        e.setForegroundBlocked(false, now: start.addingTimeInterval(600))
+        check(e.deadlines[.water] == start.addingTimeInterval(660), "A foreground transition after suspension cannot revive a stale interval")
+
+        e = ReminderEngine(saved: saved, now: start)
+        _ = advance(&e, from: start, seconds: 20)
+        e.setForegroundBlocked(true, now: start.addingTimeInterval(20))
+        _ = advance(&e, from: start.addingTimeInterval(20), seconds: 10)
+        e.complete(.water, now: start.addingTimeInterval(30))
+        _ = advance(&e, from: start.addingTimeInterval(30), seconds: 10)
+        check(e.undoLastWater(now: start.addingTimeInterval(40)) == 250, "Water undo remains available during foreground pause")
+        e.setForegroundBlocked(false, now: start.addingTimeInterval(40))
+        check(e.deadlines[.water] == start.addingTimeInterval(80), "Water undo restores the paused deadline without consuming hidden time")
     }
 
     static func firstBatchTests(start: Date) throws {
@@ -321,7 +407,7 @@ struct CoreTests {
         _ = advance(&e, from: start.addingTimeInterval(1925), seconds: 60)
         check(e.foregroundBlocked && !e.isActive(at: start.addingTimeInterval(1985)), "Busy expiry preserves application pause")
         _ = e.setForegroundBlocked(false, now: start.addingTimeInterval(1985))
-        check(e.deadlines[.water] == start.addingTimeInterval(2045), "Leaving blocked app restarts reminder interval")
+        check(e.deadlines[.water] == start.addingTimeInterval(2045), "Busy expiry provides a fresh interval while the app pause remains in effect")
         let deadline = e.deadlines[.water]
         check(!e.setForegroundBlocked(false, now: start.addingTimeInterval(1986)) && e.deadlines[.water] == deadline, "Repeated app observations never reset deadlines")
         e.snooze(.water, now: start.addingTimeInterval(1986))

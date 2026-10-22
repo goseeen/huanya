@@ -617,7 +617,7 @@ struct SettingsView: View {
             BusyControls(model: model)
             Text("忙碌期间不弹提醒、不累计工作时间；结束后重新计时。忙碌结束不会解除手动暂停。退出缓芽后，本次忙碌倒计时不保留。").font(.system(size: 10)).foregroundStyle(Palette.muted)
             Divider().overlay(Palette.line)
-            settingRow("在这些应用中暂停", detail: "仅当指定应用在前台时暂停；切换离开后重新安排提醒。") {
+            settingRow("在这些应用中暂停", detail: "指定应用在前台时暂停并保留剩余时间；切换离开后继续倒计时。") {
                 Button("添加应用…") { model.chooseBusyApplication() }.buttonStyle(QuietButton())
             }
             ForEach(model.preferences.busyApplications) { app in

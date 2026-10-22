@@ -444,9 +444,17 @@ final class AppModel: ObservableObject {
         clearPrewarning()
     }
     func takePrewarningNow() {
-        guard let batch = prewarning else { return }
+        guard engine.isActive(at: clock()), let batch = prewarning else { return }
         dismissedPrewarnings.insert(batch.id)
-        trigger(kinds: batch.kinds)
+        beginPrewarnedBreak(kinds: batch.kinds)
+    }
+    private func beginPrewarnedBreak(kinds: [ReminderKind]) {
+        trigger(kinds: kinds)
+        // Water still needs an explicit quantity confirmation. Start only one
+        // timed rest when several reminders have been grouped together.
+        if let kind = ReminderKind.allCases.first(where: { $0 != .water && kinds.contains($0) }) {
+            startBreak(kind)
+        }
     }
     private func clearPrewarning() {
         guard prewarning != nil else { return }
@@ -552,6 +560,7 @@ final class AppModel: ObservableObject {
             save(); syncNotifications(); return
         }
         if action == "water" && enabled == [.water] { logWater(); return }
+        if isPrewarning && action == "rest" { beginPrewarnedBreak(kinds: enabled); return }
         trigger(kinds: enabled)
         if action == "rest" && enabled.count == 1 && !isPrewarning { startBreak(enabled[0]) }
     }

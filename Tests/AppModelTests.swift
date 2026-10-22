@@ -145,6 +145,8 @@ struct AppModelTests {
         loginEvent.setParam(NSAppleEventDescriptor(enumCode: OSType(keyAELaunchedAsLogInItem)), forKeyword: AEKeyword(keyAEPropData))
         check(SystemActivity.isLoginLaunch(loginEvent), "Login AppleEvent starts in the background")
         secondBatchTests(start: start)
+        foregroundResumeTests(start: start)
+        prewarningStartTests(start: start)
         stretchRotationTests(start: start)
         customDurationTests(start: start)
         usageSessionTests()
@@ -175,6 +177,93 @@ struct AppModelTests {
             check(model.today.breakCount == 1 && model.today.breakSeconds == 180, "Custom \(kind) completion records the full original duration")
             check(model.engine.saved.events.last?.amount == 180, "Custom \(kind) activity retains its exact duration")
         }
+    }
+
+    static func foregroundResumeTests(start: Date) {
+        var time = start
+        let model = AppModel(preview: true, clock: { time })
+        let first = BusyApplication(bundleIdentifier: "test.editor", name: "编辑器")
+        let second = BusyApplication(bundleIdentifier: "test.presentation", name: "演示应用")
+        var saved = SavedState()
+        saved.preferences.water.intervalMinutes = 1
+        saved.preferences.eyes.enabled = false
+        saved.preferences.stretch.enabled = false
+        saved.preferences.busyApplications = [first, second]
+        model.engine = ReminderEngine(saved: saved, now: time)
+        for _ in 0..<15 { time = time.addingTimeInterval(1); model.tick(idleSeconds: 0) }
+        model.updateForegroundApplication(first)
+        for _ in 0..<40 { time = time.addingTimeInterval(1); model.tick(idleSeconds: 0) }
+        model.updateForegroundApplication(second)
+        for _ in 0..<40 { time = time.addingTimeInterval(1); model.tick(idleSeconds: 0) }
+        check(model.engine.foregroundBlocked && model.reminderKinds.isEmpty, "Moving directly between configured apps stays quiet")
+        model.updateForegroundApplication(nil)
+        check(model.countdown == "00:45", "Dashboard resumes the remaining interval instead of restarting it")
+        model.editPreferences { $0.floatingReminder = false }
+        let requests = model.notificationRequests(at: time)
+        let due = requests.first { $0.content.userInfo["prewarning"] as? Bool == false }
+        let warning = requests.first { $0.content.userInfo["prewarning"] as? Bool == true }
+        check((due?.trigger as? UNTimeIntervalNotificationTrigger)?.timeInterval == 45, "System reminder resumes after remaining forty-five seconds")
+        check((warning?.trigger as? UNTimeIntervalNotificationTrigger)?.timeInterval == 15, "System prewarning uses the restored deadline too")
+        model.editPreferences { $0.floatingReminder = true }
+        for _ in 0..<44 { time = time.addingTimeInterval(1); model.tick(idleSeconds: 0) }
+        check(model.reminderKinds.isEmpty, "Restored floating reminder does not fire early")
+        time = time.addingTimeInterval(1); model.tick(idleSeconds: 0)
+        check(model.reminderKinds == [.water] && model.today.remindersDue == 1, "Restored floating reminder fires once at the remaining deadline")
+    }
+
+    static func prewarningStartTests(start: Date) {
+        for kinds: [ReminderKind] in [[.eyes], [.stretch], [.water, .eyes, .stretch], [.water]] {
+            var time = start
+            let model = AppModel(preview: true, clock: { time })
+            var saved = SavedState()
+            saved.preferences.mergeReminders = false
+            for kind in ReminderKind.allCases {
+                saved.preferences[kind].enabled = kinds.contains(kind)
+                saved.preferences[kind].intervalMinutes = 1
+                if kind != .water { saved.preferences[kind].durationSeconds = 180 }
+            }
+            model.engine = ReminderEngine(saved: saved, now: time)
+            for _ in 0..<30 { time = time.addingTimeInterval(1); model.tick(idleSeconds: 0) }
+            check(model.prewarning?.kinds == kinds, "The eligible prewarning contains the requested plans")
+            model.takePrewarningNow()
+            check(model.prewarning == nil && model.reminderKinds == kinds, "Taking a prewarning opens the pending reminders and dismisses the preview")
+            check(model.today.waterML == 0 && model.today.eyeBreaks == 0 && model.today.stretches == 0, "Starting from a prewarning never fabricates a completion or water entry")
+            if let rest = kinds.first(where: { $0 != .water }) {
+                check(model.activeBreak?.kind == rest && model.activeBreak?.endsAt == time.addingTimeInterval(180), "One click starts the configured three-minute rest")
+                let deadline = model.activeBreak?.endsAt
+                model.takePrewarningNow()
+                model.finishReminder(rest)
+                check(model.activeBreak?.endsAt == deadline && model.engine.saved.events.isEmpty, "Repeated clicks do not restart the timer or bypass completion time")
+                for _ in 0..<180 { time = time.addingTimeInterval(1); model.tick(idleSeconds: 0) }
+                check(model.activeBreak != nil && model.engine.saved.events.isEmpty, "Finishing the countdown still waits for explicit confirmation")
+                model.finishReminder(rest)
+                check(model.engine.saved.events.count == 1 && model.activeBreak == nil && model.reminderKinds == kinds.filter { $0 != rest }, "Confirmation records only the running rest, leaving other grouped plans pending")
+            } else {
+                check(model.activeBreak == nil && model.reminderKinds == [.water], "Water-only prewarning keeps manual quantity confirmation")
+            }
+        }
+
+        var time = start
+        let model = AppModel(preview: true, clock: { time })
+        model.engine = ReminderEngine(now: time)
+        model.handleNotification(kinds: [.water, .eyes, .stretch], action: "rest", isPrewarning: true)
+        check(model.activeBreak?.kind == .eyes && model.today.waterML == 0, "Explicit system prewarning action starts one rest without recording water")
+        let deadline = model.activeBreak?.endsAt
+        time = time.addingTimeInterval(1)
+        model.handleNotification(kinds: [.eyes], action: "rest", isPrewarning: true)
+        check(model.activeBreak?.endsAt == deadline, "Repeated system prewarning responses do not restart a running rest")
+        model.dismissReminder(snooze: false)
+        model.handleNotification(kinds: [.eyes], action: UNNotificationDefaultActionIdentifier, isPrewarning: true)
+        check(model.activeBreak == nil && model.reminderKinds == [.eyes], "Opening a notification without choosing start retains manual control")
+        model.dismissReminder(snooze: false)
+        model.handleNotification(kinds: [.water], action: "rest", isPrewarning: true)
+        check(model.activeBreak == nil && model.today.waterML == 0, "System water-only prewarning also waits for explicit confirmation")
+        model.dismissReminder(snooze: false)
+        model.handleNotification(kinds: [.stretch], action: "snooze", isPrewarning: true)
+        check(model.activeBreak == nil && model.reminderKinds.isEmpty && model.engine.deadlines[.stretch] == time.addingTimeInterval(300), "Prewarning snooze postpones instead of starting a rest")
+        model.togglePause()
+        model.handleNotification(kinds: [.stretch], action: "rest", isPrewarning: true)
+        check(model.activeBreak == nil && model.reminderKinds.isEmpty, "A stale prewarning response cannot start a rest during pause")
     }
 
     static func secondBatchTests(start: Date) {

@@ -300,6 +300,7 @@ struct ReminderEngine {
     var onBreak = false
     private(set) var busyUntil: Date?
     private(set) var foregroundBlocked = false
+    private var foregroundPauseUpdatedAt: Date?
     private var currentWorkPeriodID: UUID?
     private(set) var idle = false
     private(set) var waterUndo: WaterUndo?
@@ -318,6 +319,7 @@ struct ReminderEngine {
     }
 
     mutating func resetDeadlines(now: Date) {
+        foregroundPauseUpdatedAt = foregroundBlocked ? now : nil
         notBefore = notBefore.filter { $0.value > now }
         for kind in ReminderKind.allCases {
             deadlines[kind] = max(now.addingTimeInterval(Double(saved.preferences[kind].intervalMinutes * 60)), notBefore[kind] ?? .distantPast)
@@ -325,6 +327,7 @@ struct ReminderEngine {
     }
 
     mutating func updatePreferences(_ preferences: Preferences, now: Date) {
+        shiftForegroundDeadlines(to: now)
         var value = preferences
         value.validate()
         let previous = saved.preferences
@@ -357,12 +360,37 @@ struct ReminderEngine {
     @discardableResult
     mutating func setForegroundBlocked(_ blocked: Bool, now: Date) -> Bool {
         guard foregroundBlocked != blocked else { return false }
+        let suspended = !(0...5).contains(now.timeIntervalSince(lastTick))
+        if suspended {
+            resetUsageSession(at: now)
+            resetDeadlines(now: now)
+        } else {
+            shiftForegroundDeadlines(to: now)
+        }
         refreshUsageDay(at: now)
         foregroundBlocked = blocked
+        foregroundPauseUpdatedAt = blocked ? now : nil
         currentWorkPeriodID = nil
         lastTick = now
-        resetDeadlines(now: now)
+        // Other pause reasons retain their existing fresh-interval behavior.
+        if paused || sleeping || idle || busyUntil != nil || !saved.preferences.allows(now) {
+            resetDeadlines(now: now)
+        }
         return true
+    }
+
+    private mutating func shiftForegroundDeadlines(to now: Date) {
+        guard let previous = foregroundPauseUpdatedAt else { return }
+        let elapsed = max(0, now.timeIntervalSince(previous))
+        deadlines = deadlines.mapValues { $0.addingTimeInterval(elapsed) }
+        // Keep explicit snoozes from being pulled forward by reminder merging.
+        notBefore = notBefore.mapValues { $0.addingTimeInterval(elapsed) }
+        if let undo = waterUndo {
+            waterUndo = WaterUndo(eventID: undo.eventID, day: undo.day, amount: undo.amount,
+                                  previousDeadline: undo.previousDeadline?.addingTimeInterval(elapsed),
+                                  previousNotBefore: undo.previousNotBefore?.addingTimeInterval(elapsed))
+        }
+        foregroundPauseUpdatedAt = now
     }
 
     mutating func setSleeping(_ value: Bool, now: Date) {
@@ -463,7 +491,11 @@ struct ReminderEngine {
             refreshUsageDay(at: now)
             currentWorkPeriodID = nil
             if !saved.preferences.allows(now) { resetUsageSession(at: now) }
-            resetDeadlines(now: now)
+            if foregroundBlocked && !paused && !sleeping && !idle && busyUntil == nil && saved.preferences.allows(now) {
+                shiftForegroundDeadlines(to: now)
+            } else {
+                resetDeadlines(now: now)
+            }
             return []
         }
         if !onBreak && elapsed > 0 {
@@ -524,12 +556,14 @@ struct ReminderEngine {
         saved.reminderEvents = Array(saved.reminderEvents.prefix(1000))
     }
     mutating func skip(_ kind: ReminderKind, now: Date) {
+        shiftForegroundDeadlines(to: now)
         recordInteraction(.skipped, kind: kind, now: now)
         deadlines[kind] = now.addingTimeInterval(Double(saved.preferences[kind].intervalMinutes * 60))
         notBefore[kind] = nil
     }
 
     mutating func snooze(_ kind: ReminderKind, now: Date) {
+        shiftForegroundDeadlines(to: now)
         let date = now.addingTimeInterval(5 * 60)
         deadlines[kind] = date
         notBefore[kind] = date
@@ -537,6 +571,7 @@ struct ReminderEngine {
     mutating func stoodUp() { sittingSeconds = 0 }
 
     mutating func complete(_ kind: ReminderKind, now: Date, duration: Int? = nil, waterAmount: Int? = nil) {
+        shiftForegroundDeadlines(to: now)
         var day = saved.days[dayKey(now)] ?? DayRecord()
         let amount: Int
         switch kind {
@@ -567,6 +602,7 @@ struct ReminderEngine {
 
     @discardableResult
     mutating func undoLastWater(now: Date) -> Int? {
+        shiftForegroundDeadlines(to: now)
         guard let undo = waterUndo,
               let index = saved.events.firstIndex(where: { $0.id == undo.eventID }),
               var day = saved.days[undo.day] else { return nil }
