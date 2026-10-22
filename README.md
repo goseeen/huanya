@@ -1,7 +1,5 @@
 <h1 align="center">缓芽 · huǎn yá</h1>
 
-<p align="center"><sub>中文名「缓芽」，拼音 huǎn yá；文件名使用 huanya。</sub></p>
-
 <p align="center"><strong>工作很重要，你也是。</strong></p>
 <p align="center">喝一杯水，望一会儿远处，起身舒展一下。<br>一个安静陪伴工作日的 macOS 休息提醒应用。</p>
 
@@ -14,7 +12,7 @@
 
 <p align="center">
   <a href="#功能">功能</a>&nbsp; · &nbsp;
-  <a href="#从源码运行">从源码运行</a>&nbsp; · &nbsp;
+  <a href="#下载与安装">下载</a>&nbsp; · &nbsp;
   <a href="https://github.com/goseeen/huanya/issues">反馈建议</a>
 </p>
 
@@ -86,18 +84,8 @@
 
 节假日识别和日历读取尚未接入。目标可自行调整，应用提供一般提醒与记录，不提供医疗诊断。
 
-## 从源码运行
-
-需要 macOS 13+、Apple Command Line Tools（或 Xcode）与 macOS SDK。纯 Swift，无第三方包依赖，无需 Node.js。
-
-```sh
-zsh scripts/test.sh
-zsh scripts/build.sh
-open "dist/缓芽.app"
-```
-
-> **1.0.2 · 发布准备中**  
-> 当前源码为 1.0.2（构建 9），统一使用新名称，并保留自定义休息时长与图表悬浮提示。正式安装包尚未在 GitHub 发布，发布后可在 [Releases](https://github.com/goseeen/huanya/releases) 选择 Intel 或 Apple 芯片版本。
+> **1.0 · 首个正式版本**  
+> 前往 [下载 1.0.0](https://github.com/goseeen/huanya/releases/tag/v1.0.0)，按电脑芯片选择 Intel 或 Apple 芯片安装包。
 
 ## 本地数据、备份与隐私
 
@@ -107,7 +95,7 @@ open "dist/缓芽.app"
 ~/Library/Application Support/RiseUp/state.json
 ```
 
-项目原名为“起身 RiseUp”。更名后沿用原有应用标识和上述数据目录，以继续读取已有设置与记录；目录中的 `RiseUp` 是兼容标识。名称说明见 [命名记录](docs/NAMING.md)。
+旧版用户的设置与统计继续保留，无需迁移。数据目录名称保持兼容。
 
 每日汇总持续保存；活动详情、提醒操作详情和连续工作时段各最多保留最近 1000 条 / 段。按本机日期划分每天，采用原子写入。若数据文件损坏，会提示并保留原文件。
 
@@ -116,14 +104,14 @@ open "dist/缓芽.app"
 备份时先退出应用，再复制上述文件。正常替换应用会保留设置与记录；清理工具若同时删除应用数据则不会保留。反馈问题不要直接上传个人 `state.json` 或未脱敏 CSV。
 
 
-## 安装说明与当前验证状态
+## 下载与安装
 
-正式发布后，两种架构选装一个即可：
+从 [1.0.0 发布页](https://github.com/goseeen/huanya/releases/tag/v1.0.0) 下载，两种架构选装一个即可：
 
 | 电脑 | 安装包名称 |
 | --- | --- |
-| Intel Mac | `huanya-1.0.2-Intel-x86_64.dmg` |
-| M 系列 Apple 芯片 Mac | `huanya-1.0.2-AppleSilicon-arm64.dmg` |
+| Intel Mac | `huanya-1.0.0-Intel-x86_64.dmg` |
+| M 系列 Apple 芯片 Mac | `huanya-1.0.0-AppleSilicon-arm64.dmg` |
 
 打开 DMG，将“缓芽.app”拖到 Applications，弹出映像后从“应用程序”启动。更新前先退出正在运行的应用；从旧版升级时，用新应用替换“起身 RiseUp.app”，不要同时保留并运行两个副本。个人设置与统计保存在上述数据目录中。
 
@@ -131,6 +119,16 @@ open "dist/缓芽.app"
 
 Apple 芯片版本为原生 arm64。当前开发机为 Intel，Apple 芯片实机验证仍待完成；交叉编译通过不代表已完成实机测试。
 
+
+## 从源码运行
+
+需要 macOS 13+、Apple Command Line Tools（或 Xcode）与 macOS SDK。纯 Swift，无第三方包依赖，无需 Node.js。
+
+```sh
+zsh scripts/test.sh
+zsh scripts/build.sh
+open "dist/缓芽.app"
+```
 
 ## 构建、打包与演示模式
 
@@ -151,7 +149,7 @@ zsh scripts/package.sh x86_64   # 仅 Intel
 zsh scripts/package.sh arm64    # 仅 Apple 芯片
 ```
 
-安装包输出至 `dist/releases/1.0.2/`。同名文件已存在时停止，避免覆盖历史包。脚本验证校验和，并只读挂载 DMG 检查架构、签名、版本与安装入口。可用 `zsh scripts/verify-packages.sh` 再次验证。
+安装包输出至 `dist/releases/1.0.0/`。同名文件已存在时停止，避免覆盖历史包。脚本验证校验和，并只读挂载 DMG 检查架构、签名、版本与安装入口。可用 `zsh scripts/verify-packages.sh` 再次验证。
 
 导出界面并运行原生交互检查：
 
