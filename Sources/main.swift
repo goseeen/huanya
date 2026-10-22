@@ -27,10 +27,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
         let snooze = UNNotificationAction(identifier: "snooze", title: "稍后 5 分钟", options: [])
         let water = UNNotificationAction(identifier: "water", title: "喝好了，记一杯", options: [])
         let rest = UNNotificationAction(identifier: "rest", title: "查看休息提醒", options: [.foreground])
+        let startRest = UNNotificationAction(identifier: "rest", title: "现在休息", options: [.foreground])
         center.setNotificationCategories([
             UNNotificationCategory(identifier: "water", actions: [water, snooze], intentIdentifiers: [], options: []),
             UNNotificationCategory(identifier: "rest", actions: [rest, snooze], intentIdentifiers: [], options: []),
-            UNNotificationCategory(identifier: "prewarning", actions: [rest, snooze], intentIdentifiers: [], options: [])
+            UNNotificationCategory(identifier: "prewarning", actions: [startRest, snooze], intentIdentifiers: [], options: [])
         ])
         buildWindow()
         buildReminder()
