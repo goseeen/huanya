@@ -461,7 +461,7 @@ struct StatisticsView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("今日最长一轮（估算）").font(.system(size: 12)).foregroundStyle(Palette.muted)
                     Text(minutesText(model.today.longestSittingSeconds)).font(.system(size: 24, weight: .light, design: .rounded))
-                    Text("按本轮使用规则计时；旧版历史估算保留").font(.system(size: 10)).foregroundStyle(Palette.muted)
+                    Text("回顾今天连续使用电脑的最长时段").font(.system(size: 10)).foregroundStyle(Palette.muted)
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 Rectangle().fill(Palette.line).frame(width: 1, height: 67)
                 VStack(alignment: .leading, spacing: 10) {
@@ -738,7 +738,7 @@ struct ReminderInsights: View {
                     }.font(.system(size: 12))
                 }
             }
-            Text("新增统计从使用此版本开始记录，历史数据不补算。连续时段遇到休息、暂停、空闲或睡眠即结束；时段明细最多保留最近 1000 段。").font(.system(size: 10)).foregroundStyle(Palette.muted).lineSpacing(4)
+            Text("连续工作时段在休息、暂停、空闲或睡眠时结束；最多保留最近 1000 段明细。").font(.system(size: 10)).foregroundStyle(Palette.muted).lineSpacing(4)
         }.padding(24).background(.white).clipShape(RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Palette.line))
     }
     private func count(_ title: String, _ number: Int) -> some View {
