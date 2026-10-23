@@ -332,6 +332,7 @@ struct ReminderEngine {
     private(set) var busyUntil: Date?
     private(set) var foregroundBlocked = false
     private var foregroundPauseUpdatedAt: Date?
+    private var idlePreservesForegroundCountdown = false
     private var currentWorkPeriodID: UUID?
     private(set) var idle = false
     private(set) var waterUndo: WaterUndo?
@@ -353,7 +354,7 @@ struct ReminderEngine {
     }
 
     mutating func resetDeadlines(now: Date) {
-        foregroundPauseUpdatedAt = foregroundBlocked ? now : nil
+        foregroundPauseUpdatedAt = (foregroundBlocked || idlePreservesForegroundCountdown) ? now : nil
         notBefore = notBefore.filter { $0.value > now }
         for kind in ReminderKind.allCases {
             deadlines[kind] = max(now.addingTimeInterval(Double(saved.preferences[kind].intervalMinutes * 60)), notBefore[kind] ?? .distantPast)
@@ -408,11 +409,11 @@ struct ReminderEngine {
         refreshUsageDay(at: now)
         note(blocked ? .foregroundStart : .foregroundEnd, now: now)
         foregroundBlocked = blocked
-        foregroundPauseUpdatedAt = blocked ? now : nil
+        foregroundPauseUpdatedAt = (blocked || idlePreservesForegroundCountdown) ? now : nil
         currentWorkPeriodID = nil
         lastTick = now
         // Other pause reasons retain their existing fresh-interval behavior.
-        if paused || sleeping || idle || busyUntil != nil || !saved.preferences.allows(now) {
+        if paused || sleeping || (idle && !idlePreservesForegroundCountdown) || busyUntil != nil || !saved.preferences.allows(now) {
             resetDeadlines(now: now)
         }
         return true
@@ -455,13 +456,24 @@ struct ReminderEngine {
             if duration >= 60 && duration <= 12 * 3600 && (0...5).contains(now.timeIntervalSince(lastTick)) { note(.naturalAway, now: now, seconds: duration) }
             observedAwayStart = nil
         }
+        // No input during a foreground pause does not imply that the user left.
+        // Locking remains a separate reason to discard the saved interval.
+        if sessionLocked && idlePreservesForegroundCountdown {
+            idlePreservesForegroundCountdown = false
+            resetDeadlines(now: now)
+        }
         guard idle != shouldPause else { return false }
+        shiftForegroundDeadlines(to: now)
+        let preserve = !sessionLocked && (idlePreservesForegroundCountdown || (shouldPause && foregroundBlocked))
         note(shouldPause ? .idleStart : .idleEnd, now: now)
         idle = shouldPause
+        idlePreservesForegroundCountdown = shouldPause && preserve
         refreshUsageDay(at: now)
         currentWorkPeriodID = nil
         lastTick = now
-        resetDeadlines(now: now)
+        if preserve {
+            foregroundPauseUpdatedAt = (foregroundBlocked || idlePreservesForegroundCountdown) ? now : nil
+        } else { resetDeadlines(now: now) }
         // The estimate may start a new session; no completed break is inferred.
         return true
     }
@@ -553,7 +565,7 @@ struct ReminderEngine {
             refreshUsageDay(at: now)
             currentWorkPeriodID = nil
             if !saved.preferences.allows(now) { resetUsageSession(at: now) }
-            if foregroundBlocked && !paused && !sleeping && !idle && busyUntil == nil && saved.preferences.allows(now) {
+            if (foregroundBlocked || idlePreservesForegroundCountdown) && !paused && !sleeping && (!idle || idlePreservesForegroundCountdown) && busyUntil == nil && saved.preferences.allows(now) {
                 shiftForegroundDeadlines(to: now)
             } else {
                 resetDeadlines(now: now)

@@ -210,6 +210,18 @@ struct CoreTests {
         check(e.deadlines[.eyes] == start.addingTimeInterval(310), "Changing a plan while paused replaces only that plan's interval")
         check(e.deadlines[.stretch] == start.addingTimeInterval(240), "Editing preferences preserves unchanged plans")
 
+        // A lock that begins after idle has already started must still reset.
+        e = ReminderEngine(saved: saved, now: start)
+        _ = advance(&e, from: start, seconds: 20)
+        e.setForegroundBlocked(true, now: start.addingTimeInterval(20))
+        e.updateIdle(secondsSinceInput: 600, now: start.addingTimeInterval(20))
+        _ = advance(&e, from: start.addingTimeInterval(20), seconds: 10)
+        e.updateIdle(secondsSinceInput: 610, sessionLocked: true, now: start.addingTimeInterval(30))
+        _ = advance(&e, from: start.addingTimeInterval(30), seconds: 10)
+        e.setForegroundBlocked(false, now: start.addingTimeInterval(40))
+        e.updateIdle(secondsSinceInput: 0, now: start.addingTimeInterval(40))
+        check(e.deadlines[.water] == start.addingTimeInterval(100), "Lock during an existing idle pause resets the interval")
+
         for reason in ["manual", "busy", "idle", "sleep"] {
             e = ReminderEngine(saved: saved, now: start)
             _ = advance(&e, from: start, seconds: 20)
@@ -229,7 +241,7 @@ struct CoreTests {
             }
             _ = advance(&e, from: start.addingTimeInterval(80), seconds: 10)
             e.setForegroundBlocked(false, now: start.addingTimeInterval(90))
-            check(e.deadlines[.water] == start.addingTimeInterval(150), "\(reason) overlap keeps its fresh interval instead of resurrecting an old countdown")
+            check(e.deadlines[.water] == start.addingTimeInterval(reason == "idle" ? 130 : 150), "\(reason) overlap applies its countdown policy")
         }
 
         e = ReminderEngine(saved: saved, now: start)
