@@ -15,7 +15,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" .build/module-cache
 source scripts/toolchain.sh
 export CLANG_MODULE_CACHE_PATH="$PWD/.build/module-cache"
 export SWIFT_MODULECACHE_PATH="$PWD/.build/module-cache"
-xcrun swiftc -swift-version 5 -O -target "$RISEUP_ARCH-apple-macosx13.0" "${RISEUP_SWIFT_FLAGS[@]}" Sources/Core.swift Sources/BrandArtwork.swift Sources/SystemIntegration.swift Sources/AppModel.swift Sources/Views.swift Sources/main.swift -o "$APP/Contents/MacOS/RiseUp"
+xcrun swiftc -swift-version 5 -O -target "$RISEUP_ARCH-apple-macosx13.0" "${RISEUP_SWIFT_FLAGS[@]}" Sources/Core.swift Sources/Planning.swift Sources/BrandArtwork.swift Sources/SystemIntegration.swift Sources/AppModel.swift Sources/Views.swift Sources/PlanningViews.swift Sources/ReviewViews.swift Sources/main.swift -o "$APP/Contents/MacOS/RiseUp"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c 'Add :LSArchitecturePriority array' "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Add :LSArchitecturePriority:0 string $RISEUP_ARCH" "$APP/Contents/Info.plist"

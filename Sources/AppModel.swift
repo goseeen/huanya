@@ -7,6 +7,8 @@ struct ActiveBreak {
     let kind: ReminderKind
     let endsAt: Date
     let duration: Int
+    var label: String? = nil
+    var planned: Bool = false
 }
 
 @MainActor
@@ -17,6 +19,7 @@ final class AppModel: ObservableObject {
     @Published var notificationStatus = "尚未开启"
     @Published var notice: String?
     @Published private(set) var reminderKinds: [ReminderKind] = []
+    @Published private(set) var plannedReminder: PlannedOccurrence?
     @Published private(set) var prewarning: ReminderBatch?
     @Published private(set) var activeBreak: ActiveBreak?
     @Published private(set) var launchAtLoginStatus = LoginItemStatus.disabled
@@ -86,10 +89,22 @@ final class AppModel: ObservableObject {
         refreshLoginStatus()
     }
 
+    func reminderTitle(_ kind: ReminderKind) -> String {
+        if let active = activeBreak, active.kind == kind, let label = active.label { return label }
+        if let planned = plannedReminder, planned.kind == kind { return planned.title }
+        return engine.isLongBreak(kind) ? "起身长休息" : kind.title
+    }
+    func reminderDuration(_ kind: ReminderKind) -> Int {
+        if let active = activeBreak, active.kind == kind { return active.duration }
+        if let planned = plannedReminder, planned.kind == kind { return planned.duration }
+        return engine.restDuration(kind)
+    }
+    private var mayShowReminder: Bool { engine.canNotify(at: clock()) && (preferences.allows(now) || plannedReminder != nil) }
+
     var currentReminder: ReminderKind? { activeBreak?.kind ?? reminderKinds.first }
     var preferences: Preferences { engine.saved.preferences }
     var today: DayRecord { engine.saved.days[dayKey(now)] ?? DayRecord() }
-    var todayEvents: [ActivityEvent] { engine.saved.events.filter { Calendar.current.isDate($0.date, inSameDayAs: now) } }
+    var todayEvents: [ActivityEvent] { engine.saved.events.filter { $0.voidedAt == nil && ($0.recordDay ?? dayKey($0.date)) == dayKey(now) } }
     var canUndoWater: Bool { engine.waterUndo != nil }
     var reminderPanelHeight: CGFloat {
         let card = preferences.stretchCardsEnabled && reminderKinds.contains(.stretch)
@@ -190,8 +205,9 @@ final class AppModel: ObservableObject {
                 // Keep an explicitly started break pending confirmation, but do not
                 // count inactive time as a completed break or show stale reminders.
                 reminderKinds = activeBreak.map { [$0.kind] } ?? []
+                if activeBreak == nil { plannedReminder = nil }
                 hideReminder?()
-            } else if !reminderKinds.isEmpty && engine.isActive(at: now) {
+            } else if !reminderKinds.isEmpty && mayShowReminder {
                 presentReminder?()
             }
         }
@@ -199,12 +215,18 @@ final class AppModel: ObservableObject {
         ticks += 1
         if ticks % 30 == 0 { save() }
         if ticks % 60 == 0 { refreshNotificationStatus(); refreshLoginStatus() }
-        if !engine.isActive(at: now) {
+        if !mayShowReminder {
             clearPrewarning()
-            if activeBreak == nil && !reminderKinds.isEmpty { reminderKinds.removeAll(); hideReminder?() }
+            if activeBreak == nil && !reminderKinds.isEmpty { reminderKinds.removeAll(); plannedReminder = nil; hideReminder?() }
         } else if !due.isEmpty && preferences.floatingReminder {
             clearPrewarning()
             show(kinds: due, playSound: true)
+        }
+        if !preferences.floatingReminder, notificationsAllowed, engine.canNotify(at: clock()), activeBreak == nil, reminderKinds.isEmpty,
+           let planned = engine.plannedOccurrences(at: now).first, planned.dueAt <= now { engine.recordPlannedDue(planned, now: now) }
+        if preferences.floatingReminder, engine.canNotify(at: clock()), activeBreak == nil, reminderKinds.isEmpty,
+           let planned = engine.plannedOccurrences(at: now).first, planned.dueAt <= now {
+            offerPlanned(planned)
         }
         updateStretchCardRotation()
         updatePrewarning()
@@ -224,7 +246,8 @@ final class AppModel: ObservableObject {
         }
         updateForegroundApplication(foregroundApplication)
         if shortcutsChanged { applyShortcutPreference() }
-        reminderKinds.removeAll { !engine.saved.preferences[$0].enabled && activeBreak?.kind != $0 }
+        if let planned = plannedReminder, !preferences.plannedBreaks.contains(where: { $0.id == planned.ruleID && $0.enabled && $0.signature == planned.ruleSignature }), activeBreak == nil { removeReminder(planned.kind) }
+        reminderKinds.removeAll { !engine.saved.preferences[$0].enabled && activeBreak?.kind != $0 && plannedReminder?.kind != $0 }
         if reminderKinds.isEmpty { hideReminder?() }
         clearPrewarning()
         if !isPreview { tick() }
@@ -271,9 +294,10 @@ final class AppModel: ObservableObject {
         if blocked {
             nextStretchCardSwitch = nil
             reminderKinds = activeBreak.map { [$0.kind] } ?? []
+            if activeBreak == nil { plannedReminder = nil }
             hideReminder?()
         }
-        else if activeBreak != nil && engine.isActive(at: clock()) { presentReminder?() }
+        else if activeBreak != nil && mayShowReminder { presentReminder?() }
         syncNotifications()
     }
     func chooseBusyApplication() {
@@ -348,8 +372,9 @@ final class AppModel: ObservableObject {
         guard let kind = selected ?? currentReminder, reminderKinds.contains(kind), activeBreak == nil else { return }
         if kind == .water { logWater(); return }
         now = clock()
-        let duration = preferences[kind].durationSeconds
-        activeBreak = ActiveBreak(kind: kind, endsAt: now.addingTimeInterval(Double(duration)), duration: duration)
+        let duration = reminderDuration(kind)
+        activeBreak = ActiveBreak(kind: kind, endsAt: now.addingTimeInterval(Double(duration)), duration: duration, label: reminderTitle(kind), planned: plannedReminder?.kind == kind)
+        engine.note(.breakStart, now: now)
         if kind == .stretch { restartStretchCardRotation(at: now) }
         engine.onBreak = true
         clearPrewarning()
@@ -361,7 +386,8 @@ final class AppModel: ObservableObject {
         if kind == .water { logWater(); return }
         guard let active = activeBreak, active.kind == kind, clock() >= active.endsAt else { return }
         now = clock()
-        engine.complete(kind, now: now, duration: active.duration)
+        engine.complete(kind, now: now, duration: active.duration, label: active.label, advancesCycle: !active.planned)
+        engine.note(.breakEnd, now: now)
         activeBreak = nil
         engine.onBreak = false
         removeReminder(kind)
@@ -387,19 +413,23 @@ final class AppModel: ObservableObject {
         save()
         syncNotifications()
     }
-    func stoodUp() { engine.stoodUp(); notice = "已重置本轮使用时长。"; save() }
+    func stoodUp() { engine.stoodUp(); engine.note(.stoodUp, now: clock()); notice = "已重置本轮使用时长。"; save() }
     private func removeReminder(_ kind: ReminderKind) {
+        if plannedReminder?.kind == kind { plannedReminder = nil }
         if kind == .stretch { nextStretchCardSwitch = nil }
         reminderKinds.removeAll { $0 == kind }
         if reminderKinds.isEmpty { hideReminder?() }
         else if engine.isActive(at: clock()) { presentReminder?() }
     }
     func dismissReminder(snooze: Bool, recordInteraction: Bool = true) {
+        if activeBreak != nil { engine.note(.breakEnd, now: clock()) }
         if snooze { for kind in reminderKinds {
-            engine.snooze(kind, now: clock())
+            if let planned = plannedReminder, planned.kind == kind { engine.snoozePlanned(planned, now: clock()) }
+            else { engine.snooze(kind, now: clock()) }
             if recordInteraction { engine.recordInteraction(.snoozed, kind: kind, now: clock()) }
         } }
         reminderKinds.removeAll()
+        plannedReminder = nil
         nextStretchCardSwitch = nil
         activeBreak = nil
         engine.onBreak = false
@@ -410,9 +440,10 @@ final class AppModel: ObservableObject {
     }
     func snooze(_ kind: ReminderKind) {
         guard reminderKinds.contains(kind) else { return }
-        engine.snooze(kind, now: clock())
+        if let planned = plannedReminder, planned.kind == kind { engine.snoozePlanned(planned, now: clock()) }
+        else { engine.snooze(kind, now: clock()) }
         engine.recordInteraction(.snoozed, kind: kind, now: clock())
-        if activeBreak?.kind == kind { activeBreak = nil; engine.onBreak = false }
+        if activeBreak?.kind == kind { activeBreak = nil; engine.onBreak = false; engine.note(.breakEnd, now: clock()) }
         removeReminder(kind)
         save()
         syncNotifications()
@@ -422,8 +453,9 @@ final class AppModel: ObservableObject {
         now = clock()
         let kinds = selected.map { reminderKinds.contains($0) ? [$0] : [] } ?? reminderKinds
         for kind in kinds {
-            engine.skip(kind, now: now)
-            if activeBreak?.kind == kind { activeBreak = nil; engine.onBreak = false }
+            if plannedReminder?.kind == kind { engine.recordInteraction(.skipped, kind: kind, now: now) }
+            else { engine.skip(kind, now: now) }
+            if activeBreak?.kind == kind { activeBreak = nil; engine.onBreak = false; engine.note(.breakEnd, now: clock()) }
             removeReminder(kind)
         }
         clearPrewarning()
@@ -444,8 +476,9 @@ final class AppModel: ObservableObject {
         clearPrewarning()
     }
     func takePrewarningNow() {
-        guard engine.isActive(at: clock()), let batch = prewarning else { return }
+        guard engine.canNotify(at: clock()), let batch = prewarning, batch.planned != nil || preferences.allows(clock()) else { return }
         dismissedPrewarnings.insert(batch.id)
+        if let planned = batch.planned { offerPlanned(planned); startBreak(planned.kind); return }
         beginPrewarnedBreak(kinds: batch.kinds)
     }
     private func beginPrewarnedBreak(kinds: [ReminderKind]) {
@@ -460,6 +493,24 @@ final class AppModel: ObservableObject {
         guard prewarning != nil else { return }
         prewarning = nil
         hidePrewarning?()
+    }
+
+    func offerPlanned(_ occurrence: PlannedOccurrence) {
+        guard engine.canNotify(at: clock()), activeBreak == nil, reminderKinds.isEmpty, engine.acceptsPlanned(occurrence, at: clock(), grace: 600) else { return }
+        now = clock()
+        plannedReminder = occurrence
+        engine.claimPlanned(occurrence, now: now)
+        engine.recordPlannedDue(occurrence, now: now)
+        clearPrewarning()
+        show(kinds: [occurrence.kind], playSound: true)
+        save()
+        syncNotifications()
+    }
+    func correctRecord(_ id: UUID, amount: Int?) -> Bool {
+        let changed = engine.correctActivity(id: id, amount: amount, now: clock())
+        notice = changed ? (amount == nil ? "已撤销这条记录，可在记录管理中恢复。" : "记录已更正，统计已同步调整。") : "这条记录无法更正，请检查数值或原始统计。"
+        if changed { save() }
+        return changed
     }
 
     func refreshLoginStatus() { launchAtLoginStatus = loginManager.status }
@@ -507,10 +558,12 @@ final class AppModel: ObservableObject {
                 let delivery = warning ? batch.dueAt.addingTimeInterval(-Double(preferences.prewarningSeconds)) : batch.dueAt
                 if warning && delivery <= date { continue }
                 let content = UNMutableNotificationContent()
-                content.title = warning ? "缓芽 · 稍后休息一下" : "缓芽 · \(batch.title)"
+                let title = batch.planned == nil && batch.kinds == [.stretch] && engine.isLongBreak(.stretch) ? "起身长休息" : batch.title
+                content.title = warning ? "缓芽 · 稍后休息一下" : "缓芽 · \(title)"
                 content.body = warning ? "\(preferences.prewarningSeconds) 秒后提醒\(batch.title)，可以准备收尾了。" : (batch.kinds.count > 1 ? "这几项提醒时间接近，放在一起了。点开后分别确认。" : batch.kinds[0].message)
                 content.categoryIdentifier = warning ? "prewarning" : (batch.kinds == [.water] ? "water" : "rest")
                 content.userInfo = ["kinds": batch.kinds.map(\.rawValue), "prewarning": warning]
+                if let planned = batch.planned, let data = try? JSONEncoder().encode(planned), let payload = String(data: data, encoding: .utf8) { content.userInfo["planned"] = payload }
                 if !warning && preferences.sound { content.sound = .default }
                 let soundID = warning || !preferences.sound ? "quiet" : "sound"
                 let id = "riseup.\(warning ? "warning" : "break").\(batch.id).\(soundID)"
@@ -527,7 +580,7 @@ final class AppModel: ObservableObject {
         let center = UNUserNotificationCenter.current()
         let requests = notificationsAllowed ? notificationRequests(at: date) : []
         let desired = Set(requests.map(\.identifier))
-        let inactive = !engine.isActive(at: date) || engine.onBreak || preferences.floatingReminder || !reminderKinds.isEmpty || !notificationsAllowed
+        let inactive = !engine.canNotify(at: clock()) || engine.onBreak || preferences.floatingReminder || !reminderKinds.isEmpty || !notificationsAllowed
         for (id, delivery) in scheduled where !desired.contains(id) {
             // Let the daemon finish delivering an item that just became due.
             if inactive || delivery > date || date.timeIntervalSince(delivery) > 5 {
@@ -548,7 +601,16 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func handleNotification(kinds: [ReminderKind], action: String, isPrewarning: Bool = false) {
+    func handleNotification(kinds: [ReminderKind], action: String, isPrewarning: Bool = false, plannedPayload: String? = nil) {
+        if let payload = plannedPayload {
+            guard let data = payload.data(using: .utf8), let occurrence = try? JSONDecoder().decode(PlannedOccurrence.self, from: data),
+                  engine.canNotify(at: clock()), engine.acceptsPlanned(occurrence, at: clock(), grace: 600),
+                  activeBreak == nil, reminderKinds.isEmpty else { return }
+            if action == "snooze" { engine.snoozePlanned(occurrence, now: clock()); engine.recordInteraction(.snoozed, kind: occurrence.kind, now: clock()); save(); syncNotifications(); return }
+            offerPlanned(occurrence)
+            if action == "rest" { startBreak(occurrence.kind) }
+            return
+        }
         guard engine.isActive(at: clock()) else { return }
         let enabled = kinds.filter { preferences[$0].enabled }
         guard !enabled.isEmpty else { return }
