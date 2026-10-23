@@ -17,13 +17,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
     private var statusObservation: AnyCancellable?
     private let captureIndex = CommandLine.arguments.firstIndex(of: "--capture")
     private var captureDirectory: String?
+    private var previewTimer: Timer?
+    private var isPreviewSession: Bool { captureDirectory != nil || CommandLine.arguments.contains("--preview") || Bundle.main.object(forInfoDictionaryKey: "HuanyaPreviewMode") as? Bool == true }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let index = captureIndex, CommandLine.arguments.count > index + 1 { captureDirectory = CommandLine.arguments[index + 1] }
-        model = AppModel(preview: captureDirectory != nil)
+        model = AppModel(preview: isPreviewSession)
+        if !isPreviewSession {
         let center = UNUserNotificationCenter.current()
         center.delegate = self
-        if captureDirectory == nil { center.removeAllPendingNotificationRequests() }
+        center.removeAllPendingNotificationRequests()
         let snooze = UNNotificationAction(identifier: "snooze", title: "稍后 5 分钟", options: [])
         let water = UNNotificationAction(identifier: "water", title: "喝好了，记一杯", options: [])
         let rest = UNNotificationAction(identifier: "rest", title: "查看休息提醒", options: [.foreground])
@@ -33,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
             UNNotificationCategory(identifier: "rest", actions: [rest, snooze], intentIdentifiers: [], options: []),
             UNNotificationCategory(identifier: "prewarning", actions: [startRest, snooze], intentIdentifiers: [], options: [])
         ])
+        }
         buildWindow()
         buildReminder()
         buildPrewarning()
@@ -51,12 +55,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
         }
         updateStatusItem()
         model.start()
-        activity = ProcessInfo.processInfo.beginActivity(options: .userInitiatedAllowingIdleSystemSleep, reason: "按设定的间隔提供本地休息提醒")
+        if !isPreviewSession { activity = ProcessInfo.processInfo.beginActivity(options: .userInitiatedAllowingIdleSystemSleep, reason: "按设定的间隔提供本地休息提醒") }
+        if isPreviewSession && captureDirectory == nil {
+            previewTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in Task { @MainActor in self?.model.tick(idleSeconds: 0) } }
+        }
         if let directory = captureDirectory {
             try? FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
             mainWindow.makeKeyAndOrderFront(nil)
             NSApplication.shared.activate(ignoringOtherApps: true)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.capturePage(0, directory: directory) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                if CommandLine.arguments.contains("--capture-development") { self.captureDevelopmentViews(directory: directory) }
+                else { self.capturePage(0, directory: directory) }
+            }
         } else if !SystemActivity.launchedAtLogin {
             showMain()
         }
@@ -64,7 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
 
     func buildWindow() {
         mainWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1110, height: 810), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
-        mainWindow.title = "缓芽 · huǎn yá"
+        mainWindow.title = isPreviewSession ? "缓芽 · 2.0 开发预览（演示数据）" : "缓芽 · huǎn yá"
         mainWindow.titleVisibility = .hidden
         mainWindow.titlebarAppearsTransparent = true
         mainWindow.backgroundColor = NSColor(red: 0.97, green: 0.97, blue: 0.95, alpha: 1)
@@ -74,7 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
         let root = NSHostingView(rootView: RootView(model: model).ignoresSafeArea(.container, edges: .top).background(Palette.background))
         mainWindow.contentView = root
         mainWindow.center()
-        mainWindow.setFrameAutosaveName("RiseUpMainWindow")
+        if !isPreviewSession { mainWindow.setFrameAutosaveName("RiseUpMainWindow") }
     }
 
     func buildReminder() {
@@ -178,7 +188,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
     func applicationWillTerminate(_ notification: Notification) {
         shortcuts.stop()
         model?.save()
-        if captureDirectory == nil { UNUserNotificationCenter.current().removeAllPendingNotificationRequests() }
+        if !isPreviewSession { UNUserNotificationCenter.current().removeAllPendingNotificationRequests() }
         if let activity { ProcessInfo.processInfo.endActivity(activity) }
     }
 
@@ -191,8 +201,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
         let info = response.notification.request.content.userInfo
         let raw = (info["kinds"] as? [String]) ?? (info["kind"] as? String).map { [$0] } ?? []
         let kinds = raw.compactMap(ReminderKind.init(rawValue:))
-        Task { @MainActor in self.model.handleNotification(kinds: kinds, action: response.actionIdentifier, isPrewarning: info["prewarning"] as? Bool ?? false) }
+        Task { @MainActor in self.model.handleNotification(kinds: kinds, action: response.actionIdentifier, isPrewarning: info["prewarning"] as? Bool ?? false, plannedPayload: info["planned"] as? String) }
         completionHandler()
+    }
+
+    func captureDevelopmentViews(directory: String) {
+        capture(view: mainWindow.contentView!, path: "\(directory)/00-dashboard.png")
+        captureStandalone(RoutinePlanningView(model: model).padding(24).foregroundStyle(Palette.ink).background(Palette.background), width: 790, path: "\(directory)/01-routines.png")
+        captureStandalone(WeeklyRoutineEditor(model: model), width: 680, path: "\(directory)/02-weekly-editor.png")
+        captureStandalone(PlannedBreakEditor(model: model, plan: PlannedBreak()), width: 620, path: "\(directory)/03-fixed-editor.png")
+        captureStandalone(PeriodReviewView(model: model).padding(24).foregroundStyle(Palette.ink).background(Palette.background), width: 790, path: "\(directory)/04-week-review.png")
+        captureStandalone(PeriodReviewView(model: model, period: .month).padding(24).foregroundStyle(Palette.ink).background(Palette.background), width: 790, path: "\(directory)/10-month-review.png")
+        captureStandalone(ActivityRecordsView(model: model), width: 720, path: "\(directory)/05-records.png")
+        if let event = model.engine.saved.events.first { captureStandalone(ActivityCorrectionEditor(model: model, event: event), width: 500, path: "\(directory)/06-correction.png") }
+        model.engine.note(.foregroundStart, now: model.now.addingTimeInterval(-120))
+        model.engine.note(.foregroundEnd, now: model.now.addingTimeInterval(-20))
+        captureStandalone(TimingHistoryList(model: model), width: 690, path: "\(directory)/07-timing-reasons.png")
+        model.editPreferences { $0.longBreak.enabled = true; $0.longBreak.every = 2; $0.longBreak.durationSeconds = 900 }
+        model.engine.complete(.stretch, now: model.now)
+        model.trigger(.stretch)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.capture(view: self.reminderWindow.contentView!, path: "\(directory)/08-long-break.png")
+            self.model.dismissReminder(snooze: false)
+            var plan = PlannedBreak(); plan.minute = Calendar.current.component(.hour, from: self.model.now) * 60 + Calendar.current.component(.minute, from: self.model.now); plan.weekdays = [1,2,3,4,5,6,7]
+            self.model.editPreferences { $0.plannedBreaks = [plan] }
+            self.model.offerPlanned(plan.occurrence(on: self.model.now)!)
+            self.model.startBreak()
+            precondition(self.model.activeBreak?.duration == plan.durationSeconds && self.model.plannedReminder?.title == plan.name)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.capture(view: self.reminderWindow.contentView!, path: "\(directory)/09-fixed-break.png")
+                print("PASS: isolated native planning/review preview; personal store, login items and notification registration disabled")
+                NSApplication.shared.terminate(nil)
+            }
+        }
     }
 
     func capturePage(_ index: Int, directory: String) {

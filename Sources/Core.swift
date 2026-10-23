@@ -102,9 +102,15 @@ struct Preferences: Codable, Equatable {
     var globalShortcutsEnabled = false
     var stretchCardsEnabled = true
 
+    var weeklyRoutineEnabled = false
+    var weeklyRoutine = WeekdayRoutine.standard
+    var longBreak = LongBreakRule()
+    var plannedBreaks: [PlannedBreak] = []
+
     init() {}
 
     private enum CodingKeys: String, CodingKey {
+        case weeklyRoutineEnabled, weeklyRoutine, longBreak, plannedBreaks
         case water, eyes, stretch, waterML, waterGoalML, breakGoal, sound, floatingReminder
         case workHoursOnly, weekdaysOnly, startHour, endHour
         case idlePauseEnabled, idlePauseMinutes, mergeReminders, mergeWindowSeconds
@@ -116,6 +122,10 @@ struct Preferences: Codable, Equatable {
     init(from decoder: Decoder) throws {
         self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
+        weeklyRoutineEnabled = try c.decodeIfPresent(Bool.self, forKey: .weeklyRoutineEnabled) ?? false
+        weeklyRoutine = try c.decodeIfPresent([WeekdayRoutine].self, forKey: .weeklyRoutine) ?? weeklyRoutine
+        longBreak = try c.decodeIfPresent(LongBreakRule.self, forKey: .longBreak) ?? longBreak
+        plannedBreaks = try c.decodeIfPresent([PlannedBreak].self, forKey: .plannedBreaks) ?? []
         water = try c.decodeIfPresent(ReminderPlan.self, forKey: .water) ?? water
         eyes = try c.decodeIfPresent(ReminderPlan.self, forKey: .eyes) ?? eyes
         stretch = try c.decodeIfPresent(ReminderPlan.self, forKey: .stretch) ?? stretch
@@ -149,6 +159,10 @@ struct Preferences: Codable, Equatable {
 
     func allows(_ date: Date, calendar: Calendar = .current) -> Bool {
         let weekday = calendar.component(.weekday, from: date)
+        if weeklyRoutineEnabled {
+            let minute = calendar.component(.hour, from: date) * 60 + calendar.component(.minute, from: date)
+            return weeklyRoutine.contains { $0.weekday == weekday && $0.enabled && $0.windows.contains { minute >= $0.start && minute < $0.end } }
+        }
         if weekdaysOnly && (weekday == 1 || weekday == 7) { return false }
         guard workHoursOnly else { return true }
         let hour = calendar.component(.hour, from: date)
@@ -158,6 +172,10 @@ struct Preferences: Codable, Equatable {
     }
 
     mutating func validate() {
+        if WeekdayRoutine.error(weeklyRoutine) != nil { weeklyRoutine = WeekdayRoutine.standard; weeklyRoutineEnabled = false }
+        longBreak.validate()
+        var planIDs = Set<UUID>()
+        plannedBreaks = Array(plannedBreaks.filter { $0.error == nil && planIDs.insert($0.id).inserted }.prefix(20))
         for kind in ReminderKind.allCases {
             var plan = self[kind]
             plan.intervalMinutes = min(180, max(1, plan.intervalMinutes))
@@ -226,6 +244,7 @@ struct ReminderInteractionEvent: Codable, Identifiable {
     var date: Date
     var kind: ReminderKind
     var action: ReminderInteraction
+    var plannedDeliveryID: String? = nil
 }
 struct WorkPeriod: Codable, Identifiable {
     var id = UUID()
@@ -239,17 +258,25 @@ struct ActivityEvent: Codable, Identifiable {
     var date: Date
     var kind: ReminderKind
     var amount: Int
+    var recordDay: String? = nil
+    var origin: ActivityOrigin? = nil
+    var label: String? = nil
+    var voidedAt: Date? = nil
+    var revisions: [ActivityRevision]? = nil
 }
 
 struct SavedState: Codable {
-    var version = 1
+    var version = 2
     var preferences = Preferences()
     var days: [String: DayRecord] = [:]
     var events: [ActivityEvent] = []
     var reminderEvents: [ReminderInteractionEvent] = []
     var workPeriods: [WorkPeriod] = []
+    var timingEvents: [TimingEvent] = []
+    var stretchCycle = 0
+    var plannedHistory: [PlannedOccurrence] = []
     init() {}
-    private enum CodingKeys: String, CodingKey { case version, preferences, days, events, reminderEvents, workPeriods }
+    private enum CodingKeys: String, CodingKey { case version, preferences, days, events, reminderEvents, workPeriods, timingEvents, stretchCycle, plannedHistory }
     init(from decoder: Decoder) throws {
         self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -259,6 +286,9 @@ struct SavedState: Codable {
         events = try c.decodeIfPresent([ActivityEvent].self, forKey: .events) ?? []
         reminderEvents = try c.decodeIfPresent([ReminderInteractionEvent].self, forKey: .reminderEvents) ?? []
         workPeriods = try c.decodeIfPresent([WorkPeriod].self, forKey: .workPeriods) ?? []
+        timingEvents = try c.decodeIfPresent([TimingEvent].self, forKey: .timingEvents) ?? []
+        stretchCycle = max(0, try c.decodeIfPresent(Int.self, forKey: .stretchCycle) ?? 0)
+        plannedHistory = try c.decodeIfPresent([PlannedOccurrence].self, forKey: .plannedHistory) ?? []
     }
 }
 
@@ -270,8 +300,9 @@ func dayKey(_ date: Date, calendar: Calendar = .current) -> String {
 struct ReminderBatch: Equatable, Identifiable {
     let kinds: [ReminderKind]
     let dueAt: Date
-    var id: String { kinds.map(\.rawValue).joined(separator: "-") + ".\(Int64(dueAt.timeIntervalSince1970 * 1000))" }
-    var title: String { kinds.map(\.short).joined(separator: " · ") }
+    var planned: PlannedOccurrence? = nil
+    var id: String { if let planned { return "planned.\(planned.id).\(Int64(dueAt.timeIntervalSince1970)).\(Data((planned.ruleSignature ?? "").utf8).base64EncodedString())" }; return kinds.map(\.rawValue).joined(separator: "-") + ".\(Int64(dueAt.timeIntervalSince1970 * 1000))" }
+    var title: String { planned?.title ?? kinds.map(\.short).joined(separator: " · ") }
 }
 
 struct WaterUndo {
@@ -304,6 +335,8 @@ struct ReminderEngine {
     private var currentWorkPeriodID: UUID?
     private(set) var idle = false
     private(set) var waterUndo: WaterUndo?
+    private var lastScheduleAllowed: Bool
+    private var observedAwayStart: Date?
     private var notBefore: [ReminderKind: Date] = [:]
 
     init(saved: SavedState = SavedState(), now: Date = Date()) {
@@ -311,6 +344,7 @@ struct ReminderEngine {
         self.saved.preferences.validate()
         self.lastTick = now
         self.usageDay = dayKey(now)
+        self.lastScheduleAllowed = self.saved.preferences.allows(now)
         resetDeadlines(now: now)
     }
 
@@ -332,17 +366,20 @@ struct ReminderEngine {
         value.validate()
         let previous = saved.preferences
         saved.preferences = value
+        if previous != value { note(.preferences, now: now) }
+        if previous.longBreak != value.longBreak { saved.stretchCycle = 0 }
         for kind in ReminderKind.allCases where previous[kind] != value[kind] {
             deadlines[kind] = now.addingTimeInterval(Double(value[kind].intervalMinutes * 60))
             notBefore[kind] = nil
         }
-        if previous.workHoursOnly != value.workHoursOnly || previous.weekdaysOnly != value.weekdaysOnly || previous.startHour != value.startHour || previous.endHour != value.endHour {
+        if previous.weeklyRoutineEnabled != value.weeklyRoutineEnabled || previous.weeklyRoutine != value.weeklyRoutine || previous.workHoursOnly != value.workHoursOnly || previous.weekdaysOnly != value.weekdaysOnly || previous.startHour != value.startHour || previous.endHour != value.endHour {
             resetDeadlines(now: now)
         }
     }
 
     mutating func setPaused(_ value: Bool, until: Date? = nil, now: Date) {
         refreshUsageDay(at: now)
+        if paused != value { note(value ? .manualPause : .manualResume, now: now) }
         paused = value
         pausedUntil = value ? until : nil
         lastTick = now
@@ -352,6 +389,7 @@ struct ReminderEngine {
 
     mutating func setBusy(minutes: Int?, now: Date) {
         refreshUsageDay(at: now)
+        if (busyUntil != nil) != (minutes != nil) { note(minutes == nil ? .busyEnd : .busyStart, now: now) }
         busyUntil = minutes.map { now.addingTimeInterval(Double(min(180, max(1, $0)) * 60)) }
         currentWorkPeriodID = nil
         lastTick = now
@@ -368,6 +406,7 @@ struct ReminderEngine {
             shiftForegroundDeadlines(to: now)
         }
         refreshUsageDay(at: now)
+        note(blocked ? .foregroundStart : .foregroundEnd, now: now)
         foregroundBlocked = blocked
         foregroundPauseUpdatedAt = blocked ? now : nil
         currentWorkPeriodID = nil
@@ -395,6 +434,8 @@ struct ReminderEngine {
 
     mutating func setSleeping(_ value: Bool, now: Date) {
         refreshUsageDay(at: now)
+        if sleeping != value { note(value ? .sleep : .wake, now: now) }
+        observedAwayStart = nil
         sleeping = value
         currentWorkPeriodID = nil
         lastTick = now
@@ -406,7 +447,16 @@ struct ReminderEngine {
         let elapsed = secondsSinceInput.isFinite ? max(0, secondsSinceInput) : 0
         updateUsageInactivity(secondsSinceInput: elapsed, sessionLocked: sessionLocked, now: now)
         let shouldPause = sessionLocked || (saved.preferences.idlePauseEnabled && elapsed >= Double(saved.preferences.idlePauseMinutes * 60))
+        let away = shouldPause || elapsed >= Self.newUsageSessionAfter
+        if away && !sleeping && observedAwayStart == nil { observedAwayStart = now }
+        if !away, let start = observedAwayStart {
+            let duration = now.timeIntervalSince(start)
+            // Do not infer what happened during an unobserved process/sleep gap.
+            if duration >= 60 && duration <= 12 * 3600 && (0...5).contains(now.timeIntervalSince(lastTick)) { note(.naturalAway, now: now, seconds: duration) }
+            observedAwayStart = nil
+        }
         guard idle != shouldPause else { return false }
+        note(shouldPause ? .idleStart : .idleEnd, now: now)
         idle = shouldPause
         refreshUsageDay(at: now)
         currentWorkPeriodID = nil
@@ -423,6 +473,7 @@ struct ReminderEngine {
 
     private mutating func refreshUsageDay(at date: Date) {
         guard usageDay != dayKey(date) else { return }
+        note(.newDay, now: date)
         resetUsageSession(at: date)
         currentWorkPeriodID = nil
     }
@@ -436,6 +487,7 @@ struct ReminderEngine {
             && (lastInputDate.map { now.timeIntervalSince($0) >= Self.newUsageSessionAfter } ?? false)
         let longAbsence = secondsSinceInput >= Self.newUsageSessionAfter || longLock || returnedAfterLongIdle
         if longAbsence && !resetForCurrentAbsence {
+            if sittingSeconds > 0 { note(.awaySession, now: now) }
             resetUsageSession(at: now)
             currentWorkPeriodID = nil
         }
@@ -446,7 +498,9 @@ struct ReminderEngine {
     }
 
     func scheduledBatches(at now: Date) -> [ReminderBatch] {
-        guard isActive(at: now), !onBreak else { return [] }
+        guard canNotify(at: now), !onBreak else { return [] }
+        let planned = plannedOccurrences(at: now).prefix(1).map { ReminderBatch(kinds: [$0.kind], dueAt: $0.dueAt, planned: $0) }
+        guard isActive(at: now) else { return planned }
         var remaining = ReminderKind.allCases.filter { saved.preferences[$0].enabled && deadlines[$0] != nil }
         remaining.sort {
             if deadlines[$0] == deadlines[$1] { return ReminderKind.allCases.firstIndex(of: $0)! < ReminderKind.allCases.firstIndex(of: $1)! }
@@ -464,7 +518,7 @@ struct ReminderEngine {
             }
             remaining.removeAll { members.contains($0) }
         }
-        return result
+        return (result + planned).sorted { $0.dueAt < $1.dueAt }
     }
 
     func prewarning(at now: Date) -> ReminderBatch? {
@@ -477,11 +531,19 @@ struct ReminderEngine {
     mutating func advance(now: Date, countReminders: Bool = true, pendingKinds: Set<ReminderKind> = []) -> [ReminderKind] {
         if let until = busyUntil, now >= until { setBusy(minutes: nil, now: now) }
         if paused, let until = pausedUntil, now >= until { setPaused(false, now: now) }
+        let allowed = saved.preferences.allows(now)
+        if allowed != lastScheduleAllowed {
+            note(allowed ? .scheduleStart : .scheduleEnd, now: now)
+            lastScheduleAllowed = allowed
+            if allowed { resetDeadlines(now: now) }
+        }
         let elapsed = now.timeIntervalSince(lastTick)
         let previousTick = lastTick
         lastTick = now
         // Large gaps mean the machine slept or the process was suspended. Never count them.
         if elapsed > 5 || elapsed < 0 {
+            note(.clockGap, now: now)
+            observedAwayStart = nil
             currentWorkPeriodID = nil
             resetUsageSession(at: now)
             resetDeadlines(now: now)
@@ -510,7 +572,7 @@ struct ReminderEngine {
             refreshUsageDay(at: now)
             currentWorkPeriodID = nil
         }
-        let due = scheduledBatches(at: now).filter { $0.dueAt <= now }.flatMap(\.kinds).filter { !pendingKinds.contains($0) }
+        let due = scheduledBatches(at: now).filter { $0.planned == nil && $0.dueAt <= now }.flatMap(\.kinds).filter { !pendingKinds.contains($0) }
         for kind in due {
             if countReminders { recordInteraction(.due, kind: kind, now: now) }
             deadlines[kind] = now.addingTimeInterval(Double(saved.preferences[kind].intervalMinutes * 60))
@@ -547,12 +609,12 @@ struct ReminderEngine {
         }
     }
 
-    mutating func recordInteraction(_ action: ReminderInteraction, kind: ReminderKind, now: Date) {
+    mutating func recordInteraction(_ action: ReminderInteraction, kind: ReminderKind, now: Date, plannedDeliveryID: String? = nil) {
         let key = dayKey(now)
         var day = saved.days[key] ?? DayRecord()
         switch action { case .due: day.remindersDue += 1; case .snoozed: day.remindersSnoozed += 1; case .skipped: day.remindersSkipped += 1 }
         saved.days[key] = day
-        saved.reminderEvents.insert(ReminderInteractionEvent(date: now, kind: kind, action: action), at: 0)
+        saved.reminderEvents.insert(ReminderInteractionEvent(date: now, kind: kind, action: action, plannedDeliveryID: plannedDeliveryID), at: 0)
         saved.reminderEvents = Array(saved.reminderEvents.prefix(1000))
     }
     mutating func skip(_ kind: ReminderKind, now: Date) {
@@ -570,7 +632,7 @@ struct ReminderEngine {
     }
     mutating func stoodUp() { sittingSeconds = 0 }
 
-    mutating func complete(_ kind: ReminderKind, now: Date, duration: Int? = nil, waterAmount: Int? = nil) {
+    mutating func complete(_ kind: ReminderKind, now: Date, duration: Int? = nil, waterAmount: Int? = nil, label: String? = nil, advancesCycle: Bool = true) {
         shiftForegroundDeadlines(to: now)
         var day = saved.days[dayKey(now)] ?? DayRecord()
         let amount: Int
@@ -588,9 +650,10 @@ struct ReminderEngine {
             day.stretches += 1
             day.breakSeconds += amount
             sittingSeconds = 0
+            if advancesCycle { saved.stretchCycle = (saved.stretchCycle + 1) % max(2, saved.preferences.longBreak.every) }
         }
         saved.days[dayKey(now)] = day
-        let event = ActivityEvent(date: now, kind: kind, amount: amount)
+        let event = ActivityEvent(date: now, kind: kind, amount: amount, recordDay: dayKey(now), origin: .confirmed, label: label)
         if kind == .water {
             waterUndo = WaterUndo(eventID: event.id, day: dayKey(now), amount: amount, previousDeadline: deadlines[.water], previousNotBefore: notBefore[.water])
         }
@@ -615,6 +678,8 @@ struct ReminderEngine {
         notBefore[.water] = undo.previousNotBefore
         return undo.amount
     }
+
+    mutating func invalidateWaterUndo() { waterUndo = nil }
 
     func upcoming(at now: Date) -> (ReminderKind, Date)? {
         guard let batch = scheduledBatches(at: now).first, let kind = batch.kinds.first else { return nil }

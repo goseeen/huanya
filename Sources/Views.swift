@@ -205,9 +205,10 @@ struct DashboardView: View {
         }.padding(.horizontal, 27).padding(.vertical, 22).background(Palette.green).clipShape(RoundedRectangle(cornerRadius: 20))
     }
     private var progress: Double {
-        guard let kind = model.nextKind, let due = model.engine.deadlines[kind] else { return 0 }
-        let total = Double(model.preferences[kind].intervalMinutes * 60)
-        return min(1, max(0.01, 1 - due.timeIntervalSince(model.now) / total))
+        if let active = model.activeBreak { return min(1, max(0, 1 - Double(model.breakRemaining) / Double(max(1, active.duration)))) }
+        guard let batch = model.nextBatch, let kind = batch.kinds.first else { return 0 }
+        let total = batch.planned == nil ? Double(model.preferences[kind].intervalMinutes * 60) : max(60, batch.dueAt.timeIntervalSince(Calendar.current.startOfDay(for: batch.dueAt)))
+        return min(1, max(0.01, 1 - batch.dueAt.timeIntervalSince(model.now) / total))
     }
 
     private var sittingCard: some View {
@@ -347,6 +348,7 @@ struct PlansView: View {
                     }
                 }.padding(23).background(.white).clipShape(RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Palette.line))
             }
+            RoutinePlanningView(model: model)
             Text("提示：每项提醒都可以稍后 5 分钟；暂停后恢复、电脑唤醒及新提醒时段开始时，间隔会重新计时。").font(.system(size: 11)).foregroundStyle(Palette.muted)
         }
     }
@@ -432,7 +434,6 @@ struct CustomBreakDurationView: View {
 
 struct StatisticsView: View {
     @ObservedObject var model: AppModel
-    @State private var selectedMetric = 0
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             HStack(spacing: 14) {
@@ -441,22 +442,7 @@ struct StatisticsView: View {
                 metric("累计工作", value: "\(Int(model.today.workSeconds / 60))", unit: "分钟", symbol: "clock", color: Palette.stretch)
             }
             ReminderInsights(model: model)
-            VStack(alignment: .leading, spacing: 24) {
-                HStack {
-                    SectionTitle(title: "最近 7 天", caption: "A LITTLE, EVERY DAY")
-                    Spacer()
-                    Picker("统计指标", selection: $selectedMetric) { Text("饮水").tag(0); Text("休息").tag(1); Text("工作时长").tag(2) }.pickerStyle(.segmented).frame(width: 235)
-                }
-                HStack(alignment: .bottom, spacing: 23) {
-                    ForEach(week, id: \.0) { item in
-                        VStack(spacing: 10) {
-                            Text("\(chartValue(item.1))\(selectedMetric == 0 ? " ml" : selectedMetric == 1 ? " 次" : " 分")").font(.system(size: 10)).foregroundStyle(Palette.muted).monospacedDigit()
-                            RoundedRectangle(cornerRadius: 8).fill(item.0 == dayKey(model.now) ? Palette.green : Palette.green.opacity(0.18)).frame(height: max(4, 155 * Double(chartValue(item.1)) / Double(chartMaximum)))
-                            Text(item.0 == dayKey(model.now) ? "今天" : String(item.0.suffix(5))).font(.system(size: 10)).foregroundStyle(item.0 == dayKey(model.now) ? Palette.green : Palette.muted)
-                        }.frame(maxWidth: .infinity)
-                    }
-                }.frame(height: 205, alignment: .bottom)
-            }.padding(24).background(.white).clipShape(RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Palette.line))
+            PeriodReviewView(model: model)
             HStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("今日最长一轮（估算）").font(.system(size: 12)).foregroundStyle(Palette.muted)
@@ -470,12 +456,11 @@ struct StatisticsView: View {
                     Text("只统计完成并确认的护眼与拉伸休息").font(.system(size: 10)).foregroundStyle(Palette.muted)
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }.padding(24).background(Palette.sidebar).clipShape(RoundedRectangle(cornerRadius: 16))
+            RecordManagementCard(model: model)
+            TimingHistoryView(model: model)
             HStack { Text("使用与工作时长为应用运行期间的计时估算，暂停、休息与睡眠不累计。\n缓芽不使用摄像头或传感器识别坐姿；退出应用后不计时、不提醒。").font(.system(size: 10)).foregroundStyle(Palette.muted).lineSpacing(5); Spacer(); Button { model.exportCSV() } label: { Label("导出 CSV", systemImage: "square.and.arrow.up") }.buttonStyle(QuietButton()) }
         }
     }
-    var week: [(String, DayRecord)] { (0..<7).reversed().map { offset in let date = Calendar.current.date(byAdding: .day, value: -offset, to: model.now)!; let key = dayKey(date); return (key, model.engine.saved.days[key] ?? DayRecord()) } }
-    func chartValue(_ record: DayRecord) -> Int { selectedMetric == 0 ? record.waterML : selectedMetric == 1 ? record.breakCount : Int(record.workSeconds / 60) }
-    var chartMaximum: Int { max(1, week.map { chartValue($0.1) }.max() ?? 1) }
     func metric(_ name: String, value: String, unit: String, symbol: String, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 17) {
             HStack { Text(name).font(.system(size: 12)).foregroundStyle(Palette.muted); Spacer(); Image(systemName: symbol).foregroundStyle(color) }
@@ -500,6 +485,10 @@ struct SettingsView: View {
                 Button("预览一次提醒") { model.trigger(.eyes) }.buttonStyle(QuietButton())
             }
             settingsGroup("提醒时段", symbol: "clock") {
+                if model.preferences.weeklyRoutineEnabled {
+                    HStack { Text("已使用每周作息，每日时段规则暂不生效。").font(.system(size: 12)); Spacer(); Button("前往提醒计划") { model.page = "提醒计划" }.buttonStyle(QuietButton()) }
+                }
+                Group {
                 settingRow("仅在指定时段提醒", detail: "时段外不提醒、不累计工作计时；结束时间不包含在内。") { Toggle("仅在指定时段提醒", isOn: boolBinding(\.workHoursOnly)).labelsHidden().toggleStyle(.switch) }
                 if model.preferences.workHoursOnly {
                     HStack(spacing: 12) {
@@ -513,6 +502,7 @@ struct SettingsView: View {
                 }
                 Divider().overlay(Palette.line)
                 settingRow("周末休息", detail: "开启后，周六和周日全天不提醒。") { Toggle("周末休息", isOn: boolBinding(\.weekdaysOnly)).labelsHidden().toggleStyle(.switch) }
+                }.disabled(model.preferences.weeklyRoutineEnabled)
             }
             rhythmSettings
             busySettings
@@ -859,7 +849,7 @@ struct ReminderPopup: View {
                 singleReminder
             }
             Button(model.activeBreak == nil ? "全部 5 分钟后提醒" : "结束本次 · 不计入统计") { model.snoozeCurrent() }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Palette.muted)
-            Button("本次跳过 · 下个间隔再提醒") { model.skipReminder() }.buttonStyle(.plain).font(.system(size: 10)).foregroundStyle(Palette.muted)
+            Button(model.plannedReminder == nil ? "本次跳过 · 下个间隔再提醒" : "本次跳过 · 按原计划再提醒") { model.skipReminder() }.buttonStyle(.plain).font(.system(size: 10)).foregroundStyle(Palette.muted)
         }.padding(25).frame(width: 410)
         }.scrollIndicators(.hidden).frame(width: 410, height: model.reminderPanelHeight)
             .background(Palette.background).clipShape(RoundedRectangle(cornerRadius: 23))
@@ -869,7 +859,7 @@ struct ReminderPopup: View {
         let kind = model.currentReminder ?? .stretch
         return VStack(spacing: 17) {
             Image(systemName: kind.symbol).font(.system(size: 38, weight: .ultraLight)).foregroundStyle(kind.color).frame(width: 82, height: 82).background(kind.wash).clipShape(Circle()).padding(.top, 5)
-            Text(model.activeBreak != nil ? (model.breakRemaining > 0 ? "这一刻，留给自己。" : "休息好了，真不错。") : kind.title).font(.custom("Songti SC", size: 28)).foregroundStyle(Palette.ink)
+            Text(model.activeBreak != nil ? (model.breakRemaining > 0 ? "这一刻，留给自己。" : "休息好了，真不错。") : model.reminderTitle(kind)).font(.custom("Songti SC", size: 28)).foregroundStyle(Palette.ink)
             Text(kind.message).font(.system(size: 12)).foregroundStyle(Palette.muted).multilineTextAlignment(.center).lineSpacing(5).frame(maxWidth: 330)
             if kind == .stretch && model.preferences.stretchCardsEnabled { StretchGuide(model: model) }
             if model.activeBreak != nil {
@@ -879,7 +869,7 @@ struct ReminderPopup: View {
                 WaterQuickButtons(model: model).padding(.top, 4)
                 Button("喝好了，记 \(model.preferences.waterML) ml") { model.logWater() }.buttonStyle(PrimaryButton())
             } else {
-                Text("给自己 \(BreakDuration.label(model.preferences[kind].durationSeconds))，慢慢来").font(.system(size: 11)).foregroundStyle(kind.color)
+                Text("给自己 \(BreakDuration.label(model.reminderDuration(kind)))，慢慢来").font(.system(size: 11)).foregroundStyle(kind.color)
                 Button("开始休息") { model.startBreak() }.buttonStyle(PrimaryButton())
             }
         }
@@ -894,7 +884,7 @@ struct ReminderRow: View {
         VStack(alignment: .leading, spacing: 11) {
             HStack(spacing: 9) {
                 Image(systemName: kind.symbol).font(.system(size: 18, weight: .light)).foregroundStyle(kind.color).frame(width: 32, height: 32).background(kind.wash).clipShape(RoundedRectangle(cornerRadius: 9))
-                Text(kind.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink)
+                Text(model.reminderTitle(kind)).font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink)
                 Spacer()
                 Button("跳过") { model.skipReminder(kind) }.buttonStyle(.plain).font(.system(size: 10)).foregroundStyle(Palette.muted)
                 Button("稍后 5 分钟") { model.snooze(kind) }.buttonStyle(.plain).font(.system(size: 10)).foregroundStyle(Palette.muted)
@@ -911,7 +901,7 @@ struct ReminderRow: View {
                         Spacer()
                         Button("完成\(kind.short) ✓") { model.finishReminder(kind) }.buttonStyle(QuietButton()).disabled(model.breakRemaining > 0)
                     } else {
-                        Button("开始 \(BreakDuration.label(model.preferences[kind].durationSeconds))休息") { model.startBreak(kind) }.buttonStyle(QuietButton()).disabled(model.activeBreak != nil)
+                        Button("开始 \(BreakDuration.label(model.reminderDuration(kind)))休息") { model.startBreak(kind) }.buttonStyle(QuietButton()).disabled(model.activeBreak != nil)
                         if model.activeBreak != nil { Text("当前休息完成后可开始").font(.system(size: 9)).foregroundStyle(Palette.muted) }
                     }
                 }
