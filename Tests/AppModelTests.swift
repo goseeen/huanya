@@ -146,6 +146,7 @@ struct AppModelTests {
         check(SystemActivity.isLoginLaunch(loginEvent), "Login AppleEvent starts in the background")
         secondBatchTests(start: start)
         foregroundResumeTests(start: start)
+        foregroundIdleResumeTests(start: start)
         prewarningStartTests(start: start)
         stretchRotationTests(start: start)
         customDurationTests(start: start)
@@ -209,6 +210,38 @@ struct AppModelTests {
         check(model.reminderKinds.isEmpty, "Restored floating reminder does not fire early")
         time = time.addingTimeInterval(1); model.tick(idleSeconds: 0)
         check(model.reminderKinds == [.water] && model.today.remindersDue == 1, "Restored floating reminder fires once at the remaining deadline")
+    }
+
+    static func foregroundIdleResumeTests(start: Date) {
+        for foregroundEndsFirst in [true, false] {
+            var time = start
+            let app = BusyApplication(bundleIdentifier: "test.meeting", name: "演示应用")
+            let model = AppModel(preview: true, clock: { time })
+            var saved = SavedState()
+            saved.preferences.water.intervalMinutes = 1
+            saved.preferences.eyes.enabled = false
+            saved.preferences.stretch.enabled = false
+            saved.preferences.idlePauseEnabled = true
+            saved.preferences.idlePauseMinutes = 1
+            saved.preferences.busyApplications = [app]
+            model.engine = ReminderEngine(saved: saved, now: time)
+            for _ in 0..<20 { time = time.addingTimeInterval(1); model.tick(idleSeconds: 0) }
+            model.updateForegroundApplication(app)
+            for second in 1...240 { time = time.addingTimeInterval(1); model.tick(idleSeconds: Double(second)) }
+            check(model.engine.idle && model.engine.foregroundBlocked, "No-input foreground pause overlaps idle pause")
+            if foregroundEndsFirst { model.updateForegroundApplication(nil) }
+            else { model.tick(idleSeconds: 0) }
+            if foregroundEndsFirst {
+                for _ in 0..<3 { time = time.addingTimeInterval(1); model.tick(idleSeconds: 243) }
+                model.tick(idleSeconds: 0)
+            } else { model.updateForegroundApplication(nil) }
+            check(model.countdown == "00:40", "Idle and foreground resume order preserves forty seconds")
+            check(model.today.remindersDue == 0, "Overlapping pauses do not deliver reminders")
+            for _ in 0..<39 { time = time.addingTimeInterval(1); model.tick(idleSeconds: 0) }
+            check(model.reminderKinds.isEmpty, "Restored countdown does not fire early after idle overlap")
+            time = time.addingTimeInterval(1); model.tick(idleSeconds: 0)
+            check(model.reminderKinds == [.water] && model.today.remindersDue == 1, "Restored countdown fires once at forty seconds")
+        }
     }
 
     static func prewarningStartTests(start: Date) {
