@@ -33,8 +33,8 @@
 
 <p align="center"><sub>截图使用演示数据。点击图片可查看原图。</sub></p>
 
-> **2.0 测试版（构建 21）已发布**  
-> 新增每周分段作息、长休息、固定时间提醒、周月回顾及记录更正。可下载 [2.0 测试版](https://github.com/goseeen/huanya/releases/tag/v2.0.0-beta.1)；稳定版仍为 [1.0.1](https://github.com/goseeen/huanya/releases/tag/v1.0.1)。使用规则见 [作息与统计说明](docs/ROUTINES-AND-REVIEWS.md)。
+> **2.0.0 正式版（构建 21）已发布**  
+> 新增每周分段作息、长休息、固定时间提醒、周月回顾及记录更正。[下载 2.0.0](https://github.com/goseeen/huanya/releases/tag/v2.0.0)；使用规则见 [作息与统计说明](docs/ROUTINES-AND-REVIEWS.md)。
 
 ## 功能
 
@@ -95,7 +95,7 @@
 
 节假日识别和日历读取尚未接入。目标可自行调整，应用提供一般提醒与记录，不提供医疗诊断。
 
-2.0 测试版包含每周作息、长休息、固定提醒和周月统计等功能。稳定版 1.0.1 提供基础提醒；两版的变更见 [更新记录](CHANGELOG.md)。
+2.0.0 包含每周作息、长休息、固定提醒和周月统计等功能；1.0.1 仍可下载。版本变更见 [更新记录](CHANGELOG.md)。
 
 ## 本地数据、备份与隐私
 
@@ -116,9 +116,9 @@
 
 ## 下载与安装
 
-按需从 [2.0 测试版发布页](https://github.com/goseeen/huanya/releases/tag/v2.0.0-beta.1) 或 [1.0.1 稳定版发布页](https://github.com/goseeen/huanya/releases/tag/v1.0.1) 下载。按芯片选择一个安装包：
+从 [2.0.0 发布页](https://github.com/goseeen/huanya/releases/tag/v2.0.0) 下载；[1.0.1](https://github.com/goseeen/huanya/releases/tag/v1.0.1) 仍可获取。按芯片选择一个安装包：
 
-| 电脑 | 2.0 测试版 | 1.0.1 稳定版 |
+| 电脑 | 2.0.0 | 1.0.1 |
 | --- | --- | --- |
 | Intel Mac | `huanya-2.0.0-Intel-x86_64.dmg` | `huanya-1.0.1-Intel-x86_64.dmg` |
 | M 系列 Apple 芯片 Mac | `huanya-2.0.0-AppleSilicon-arm64.dmg` | `huanya-1.0.1-AppleSilicon-arm64.dmg` |
@@ -132,7 +132,7 @@ Apple 芯片版本为原生 arm64。当前开发机为 Intel，Apple 芯片实�
 
 ## 从源码运行
 
-当前主分支源码为 2.0.0（构建 21），对应已发布的 2.0 测试版。只想体验且不影响个人记录时，可执行 `zsh scripts/preview-development.sh`，使用独立身份和演示数据预览。
+当前主分支源码为 2.0.0（构建 21）。只想体验且不影响个人记录时，可执行 `zsh scripts/preview-development.sh`，使用独立身份和演示数据预览。
 
 需要 macOS 13+、Apple Command Line Tools（或 Xcode）与 macOS SDK。纯 Swift，无第三方包依赖，无需 Node.js。
 
