@@ -33,8 +33,8 @@
 
 <p align="center"><sub>截图使用演示数据。点击图片可查看原图。</sub></p>
 
-> **开发分支：2.0 本地测试版（构建 20）**  
-> 新增每周分段作息、长休息、固定时间提醒、周月回顾及记录更正。最新正式安装包仍为 [1.0.1](https://github.com/goseeen/huanya/releases/tag/v1.0.1)；2.0 尚未提供正式 Release。试用规则见 [作息与统计说明](docs/ROUTINES-AND-REVIEWS.md)。
+> **2.0 测试版（构建 21）已发布**  
+> 新增每周分段作息、长休息、固定时间提醒、周月回顾及记录更正。可下载 [2.0 测试版](https://github.com/goseeen/huanya/releases/tag/v2.0.0-beta.1)；稳定版仍为 [1.0.1](https://github.com/goseeen/huanya/releases/tag/v1.0.1)。使用规则见 [作息与统计说明](docs/ROUTINES-AND-REVIEWS.md)。
 
 ## 功能
 
@@ -95,10 +95,7 @@
 
 节假日识别和日历读取尚未接入。目标可自行调整，应用提供一般提醒与记录，不提供医疗诊断。
 
-> **1.0.1 · 提醒体验修复**  
-> 前往 [下载 1.0.1](https://github.com/goseeen/huanya/releases/tag/v1.0.1)，按电脑芯片选择 Intel 或 Apple 芯片安装包。
-
-1.0.1 修复指定应用暂停后的倒计时恢复，以及预告中一键开始休息的操作。2.0 测试版的新增功能见 [更新记录](CHANGELOG.md)，不包含在 1.0.1 安装包中。
+2.0 测试版包含每周作息、长休息、固定提醒和周月统计等功能。稳定版 1.0.1 提供基础提醒；两版的变更见 [更新记录](CHANGELOG.md)。
 
 ## 本地数据、备份与隐私
 
@@ -119,12 +116,12 @@
 
 ## 下载与安装
 
-从 [1.0.1 发布页](https://github.com/goseeen/huanya/releases/tag/v1.0.1) 下载，两种架构选装一个即可：
+按需从 [2.0 测试版发布页](https://github.com/goseeen/huanya/releases/tag/v2.0.0-beta.1) 或 [1.0.1 稳定版发布页](https://github.com/goseeen/huanya/releases/tag/v1.0.1) 下载。按芯片选择一个安装包：
 
-| 电脑 | 安装包名称 |
-| --- | --- |
-| Intel Mac | `huanya-1.0.1-Intel-x86_64.dmg` |
-| M 系列 Apple 芯片 Mac | `huanya-1.0.1-AppleSilicon-arm64.dmg` |
+| 电脑 | 2.0 测试版 | 1.0.1 稳定版 |
+| --- | --- | --- |
+| Intel Mac | `huanya-2.0.0-Intel-x86_64.dmg` | `huanya-1.0.1-Intel-x86_64.dmg` |
+| M 系列 Apple 芯片 Mac | `huanya-2.0.0-AppleSilicon-arm64.dmg` | `huanya-1.0.1-AppleSilicon-arm64.dmg` |
 
 打开 DMG，将“缓芽.app”拖到 Applications，弹出映像后从“应用程序”启动。更新前先退出正在运行的应用；从旧版升级时，用新应用替换“起身 RiseUp.app”，不要同时保留并运行两个副本。个人设置与统计保存在上述数据目录中。
 
@@ -135,7 +132,7 @@ Apple 芯片版本为原生 arm64。当前开发机为 Intel，Apple 芯片实�
 
 ## 从源码运行
 
-当前主分支源码为 2.0 本地测试版。只想体验且不影响个人记录时，可执行 `zsh scripts/preview-development.sh`，使用独立身份和演示数据预览。
+当前主分支源码为 2.0.0（构建 21），对应已发布的 2.0 测试版。只想体验且不影响个人记录时，可执行 `zsh scripts/preview-development.sh`，使用独立身份和演示数据预览。
 
 需要 macOS 13+、Apple Command Line Tools（或 Xcode）与 macOS SDK。纯 Swift，无第三方包依赖，无需 Node.js。
 
@@ -164,7 +161,7 @@ zsh scripts/package.sh x86_64   # 仅 Intel
 zsh scripts/package.sh arm64    # 仅 Apple 芯片
 ```
 
-安装包输出至 `dist/releases/<源码版本号>/`（当前测试版为 `2.0.0`；公开下载仍为 `1.0.1`）。同名文件已存在时停止，避免覆盖历史包。脚本验证校验和，并只读挂载 DMG 检查架构、签名、版本与安装入口。可用 `zsh scripts/verify-packages.sh` 再次验证。
+安装包输出至 `dist/releases/<源码版本号>/`（当前源码版本为 `2.0.0`）。同名文件已存在时停止，避免覆盖历史包。脚本验证校验和，并只读挂载 DMG 检查架构、签名、版本与安装入口。可用 `zsh scripts/verify-packages.sh` 再次验证。
 
 导出界面并运行原生交互检查：
 

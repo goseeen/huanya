@@ -1,8 +1,8 @@
 # 源码与安装包发布
 
-源码仓库 `goseeen/huanya` 已于 **2026-10-22** 经维护者确认改为 Public，采用 MIT 许可。首个正式版本为 **1.0.0（构建 10）**。当前修复版本为 **1.0.1（构建 11）**，标签为 `v1.0.1`，安装包与说明通过 [GitHub Releases](https://github.com/goseeen/huanya/releases/tag/v1.0.1) 提供。
+源码仓库 `goseeen/huanya` 已于 **2026-10-22** 经维护者确认改为 Public，采用 MIT 许可。首个正式版本为 **1.0.0（构建 10）**。当前稳定版为 **1.0.1（构建 11）**，标签为 `v1.0.1`，安装包与说明通过 [GitHub Releases](https://github.com/goseeen/huanya/releases/tag/v1.0.1) 提供。
 
-当前主分支源码为 **2.0 本地测试版（2.0.0，构建 20）**，已在维护者的 Intel Mac 安装验证，尚未公开发布安装包；作息和统计规则见 [ROUTINES-AND-REVIEWS.md](ROUTINES-AND-REVIEWS.md)。上面的 1.0.1 仍是最新正式 Release。
+当前主分支源码为 **2.0.0（构建 21）**，已在维护者的 Intel Mac 安装验证，并作为 [2.0 测试版](https://github.com/goseeen/huanya/releases/tag/v2.0.0-beta.1) 发布两种架构安装包。Apple 芯片版尚未实机验证；作息和统计规则见 [ROUTINES-AND-REVIEWS.md](ROUTINES-AND-REVIEWS.md)。1.0.1 仍是最新稳定版。
 
 两种架构均从对应发布源码重新构建，不将旧安装包改名冒充新包。不上传个人数据、CSV、备份、证书或凭据。
 
@@ -34,7 +34,7 @@ zsh scripts/test.sh
 zsh scripts/package.sh
 ```
 
-构建 1.0.1 时应先使用 `v1.0.1` 标签对应的源码，而不是当前 2.0 测试版源码。该标签的包输出至 `dist/releases/1.0.1/`；当前主分支执行脚本会按其版本号输出至 `dist/releases/2.0.0/`。同名包已存在时脚本停止，不覆盖历史安装包。Release 使用与构建源码一致的提交创建 `v1.0.1` 标签，附上两个 DMG 和同目录的 `SHA256SUMS.txt`。发布说明见 [1.0.1.md](releases/1.0.1.md)。
+构建 1.0.1 时应先使用 `v1.0.1` 标签对应的源码，而不是当前 2.0 源码。该标签的包输出至 `dist/releases/1.0.1/`；当前主分支执行脚本会按其版本号输出至 `dist/releases/2.0.0/`。同名包已存在时脚本停止，不覆盖历史安装包。各版本的 Release 标签应指向对应源码提交，附上两种架构的 DMG 和同目录的 `SHA256SUMS.txt`。1.0.1 的说明见 [1.0.1.md](releases/1.0.1.md)。
 
 发布前核对测试结果、各包架构、应用版本 1.0.1、构建号 11、签名、挂载内容和校验值；发布后核对标签提交与附件名称、大小、校验文件。无 Apple Developer ID 签名及公证，Apple 芯片实机尚未验证，发布说明保留这些限制。
 
