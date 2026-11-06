@@ -27,3 +27,8 @@ state.json.*
 .agents/
 .codex/
 .aws/
+
+# .NET build output
+**/bin/
+**/obj/
+TestResults/
