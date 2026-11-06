@@ -42,3 +42,9 @@ Apple 框架、系统符号、字体、声音及其他第三方权利不因出�
 新增外部素材时，应补充名称、作者或权利人、原始链接、版本或获取日期、许可链接、修改记录及必要署名；需要单独授权的，保留可核验的授权凭证。AI 辅助制作的内容应如实说明制作方式，已知使用的参考素材同样需要记录。来源不能确认时，先不合入发布内容。
 
 如对现有素材有权利疑问，请按 [使用说明与免责声明](DISCLAIMER.md#素材与权利反馈) 提供核查线索。
+
+## Windows 客户端（2026-11-06）
+
+- `Windows/Huanya.Desktop/Artwork.cs`：人物、植物和拉伸卡片按 `Sources/Views.swift` 的原矢量坐标移植；导航与功能小图标使用本次编写的几何路径，AI 辅助实现，未复制 SF Symbols 文件。项目自制部分继续使用 MIT 许可。
+- `Windows/Huanya.Desktop/Assets/huanya.png`：沿用 `BrandArtwork.swift` 生成的 256 像素图标；ICO 是同一 PNG 的 Windows 图标容器，没有更换图形。
+- Windows 版不分发 Apple 字体、SF Symbols 或系统音效。依赖声明见 `Windows/THIRD_PARTY_NOTICES.md`。

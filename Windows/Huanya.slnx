@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Huanya.Core/Huanya.Core.csproj" />
+  <Project Path="Huanya.Desktop/Huanya.Desktop.csproj" />
+  <Project Path="Huanya.Tests/Huanya.Tests.csproj" />
+</Solution>

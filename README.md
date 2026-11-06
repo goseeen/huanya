@@ -1,13 +1,13 @@
 <h1 align="center">缓芽 · huǎn yá</h1>
 
 <p align="center"><strong>工作很重要，你也是。</strong></p>
-<p align="center">喝一杯水，望一会儿远处，起身舒展一下。<br>一个安静陪伴工作日的 macOS 休息提醒应用。</p>
+<p align="center">喝一杯水，望一会儿远处，起身舒展一下。<br>一个安静陪伴工作日的桌面休息提醒应用。</p>
 
 <p align="center">
   <code>macOS 13+</code>&nbsp;&nbsp;
   <code>Intel / Apple Silicon</code>&nbsp;&nbsp;
   <code>本地记录</code>&nbsp;&nbsp;
-  <code>SwiftUI</code>
+  <code>Windows 11 x64 · 预览版</code>
 </p>
 
 <p align="center">
@@ -33,8 +33,11 @@
 
 <p align="center"><sub>截图使用演示数据。点击图片可查看原图。</sub></p>
 
-> **2.0.0 正式版（构建 21）已发布**  
+> **macOS 2.0.0 正式版已发布**  
 > 新增每周分段作息、长休息、固定时间提醒、周月回顾及记录更正。[下载 2.0.0](https://github.com/goseeen/huanya/releases/tag/v2.0.0)；使用规则见 [作息与统计说明](docs/ROUTINES-AND-REVIEWS.md)。
+
+> **Windows 预览版**  
+> 支持 Windows 11 x64（Intel / AMD 64 位）。[下载预览版](https://github.com/goseeen/huanya/releases/tag/windows-v2.0.0-preview.1) · [使用说明](Windows/README.md)。
 
 ## 功能
 
@@ -69,9 +72,9 @@
 
 ### 关掉窗口，也有缓芽陪着你
 
-缓芽可以安静待在菜单栏，随时查看下一次提醒、记录一杯水，或开始一次休息。
+缓芽可以安静待在 Mac 菜单栏或 Windows 系统托盘，随时查看下一次提醒、记录一杯水，或开始一次休息。
 
-喜欢更快捷的操作，还可以开启全局快捷键：`⌃⌥⌘W` 记录默认杯量，`⌃⌥⌘R` 开始拉伸休息。菜单栏倒计时、登录时自动启动与全局快捷键默认关闭，由你决定是否开启。按 `⌘Q` 可完全退出应用。
+Mac 版可以开启全局快捷键：`⌃⌥⌘W` 记录默认杯量，`⌃⌥⌘R` 开始拉伸休息。菜单栏倒计时、登录时自动启动与全局快捷键默认关闭，由你决定是否开启。按 `⌘Q` 可完全退出应用。Windows 版的快捷键与托盘操作见 [使用说明](Windows/README.md#使用)。
 
 ### 看见今天的小进步
 
@@ -99,11 +102,12 @@
 
 ## 本地数据、备份与隐私
 
-无需账号，当前应用没有联网功能，不上传设置、统计或应用使用情况。数据保存在：
+无需账号，当前应用没有联网功能，不上传设置、统计或应用使用情况。数据目录如下：
 
-```text
-~/Library/Application Support/RiseUp/state.json
-```
+| 平台 | 数据文件 |
+| --- | --- |
+| macOS | `~/Library/Application Support/RiseUp/state.json` |
+| Windows | `%LOCALAPPDATA%\Huanya\state.json` |
 
 旧版用户的设置与统计继续保留，无需迁移。数据目录名称保持兼容。
 
@@ -115,6 +119,8 @@
 
 
 ## 下载与安装
+
+### macOS 稳定版
 
 从 [2.0.0 发布页](https://github.com/goseeen/huanya/releases/tag/v2.0.0) 下载；[1.0.1](https://github.com/goseeen/huanya/releases/tag/v1.0.1) 仍可获取。按芯片选择一个安装包：
 
@@ -130,9 +136,17 @@
 Apple 芯片版本为原生 arm64。当前开发机为 Intel，Apple 芯片实机验证仍待完成；交叉编译通过不代表已完成实机测试。
 
 
+### Windows 预览版
+
+适用于 Windows 11 x64（Intel / AMD 64 位）。从 [Windows 预览版发布页](https://github.com/goseeen/huanya/releases/tag/windows-v2.0.0-preview.1) 下载 ZIP，完整解压后运行 `Huanya.exe`，无需另装 .NET。
+
+本版本尚未完成 Windows 实机兼容性验证，未提供数字签名。[查看使用与构建说明](Windows/README.md)。
+
 ## 从源码运行
 
-当前主分支源码为 2.0.0（构建 21）。只想体验且不影响个人记录时，可执行 `zsh scripts/preview-development.sh`，使用独立身份和演示数据预览。
+Windows 构建方式见 [Windows 开发说明](Windows/README.md#从源码构建)。以下为 macOS 构建方式。
+
+macOS 源码版本为 2.0.0（构建 21）。只想体验且不影响个人记录时，可执行 `zsh scripts/preview-development.sh`，使用独立身份和演示数据预览。
 
 需要 macOS 13+、Apple Command Line Tools（或 Xcode）与 macOS SDK。纯 Swift，无第三方包依赖，无需 Node.js。
 

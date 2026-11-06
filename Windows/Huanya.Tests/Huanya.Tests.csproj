@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><ProjectReference Include="../Huanya.Core/Huanya.Core.csproj"/><ProjectReference Include="../Huanya.Desktop/Huanya.Desktop.csproj"/><PackageReference Include="Avalonia.Headless" Version="11.3.22"/></ItemGroup></Project>
