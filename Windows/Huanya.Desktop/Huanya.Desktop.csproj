@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>WinExe</OutputType><AssemblyName>Huanya</AssemblyName><ApplicationManifest>app.manifest</ApplicationManifest><ApplicationIcon>Assets/huanya.ico</ApplicationIcon><Version>2.0.0</Version><InformationalVersion>2.0.0-windows-preview.1</InformationalVersion><BuiltInComInteropSupport>true</BuiltInComInteropSupport></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../Huanya.Core/Huanya.Core.csproj"/><PackageReference Include="Avalonia.Desktop" Version="11.3.22"/><PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22"/><AvaloniaResource Include="Assets/**" /><Content Include="../ThirdPartyLicenses/**" Link="licenses/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/></ItemGroup>
+</Project>

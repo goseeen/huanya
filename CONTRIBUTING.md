@@ -15,6 +15,8 @@ zsh scripts/build.sh
 
 更改计时、统计或数据格式时，补充覆盖实际行为的测试，保持旧数据可读。界面可用 README 中的 `--capture` 模式生成演示截图。涉及 Apple 芯片行为的修改需注明是否经过实机测试。
 
+Windows 客户端使用 .NET 10 SDK，运行 `dotnet run --project Windows/Huanya.Tests -c Release` 执行测试；构建说明见 [Windows/README.md](Windows/README.md#从源码构建)。系统集成改动须在 Windows 上验证，并在 PR 中注明验证范围。
+
 ## 提交内容
 
 - 使用修复分支和 Pull Request，说明问题、修改后的行为及验证结果；合入前核对源码、测试与文档一致。

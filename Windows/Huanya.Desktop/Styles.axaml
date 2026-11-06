@@ -1,0 +1,16 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="Window"><Setter Property="Background" Value="#F7F8F2"/><Setter Property="Foreground" Value="#273C32"/><Setter Property="FontFamily" Value="Microsoft YaHei UI, PingFang SC, sans-serif"/><Setter Property="FontSize" Value="13"/></Style>
+  <Style Selector="Button"><Setter Property="CornerRadius" Value="9"/><Setter Property="Padding" Value="13,9"/><Setter Property="Background" Value="#FFFFFF"/><Setter Property="Foreground" Value="#274E3D"/><Setter Property="BorderBrush" Value="#E4E8DE"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Cursor" Value="Hand"/></Style>
+  <Style Selector="Button.primary"><Setter Property="Background" Value="#274E3D"/><Setter Property="Foreground" Value="White"/><Setter Property="CornerRadius" Value="11"/><Setter Property="Padding" Value="19,12"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="BorderThickness" Value="0"/></Style>
+  <Style Selector="Button.lime"><Setter Property="Background" Value="#D7EDAE"/><Setter Property="Foreground" Value="#274E3D"/></Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#38614E"/><Setter Property="TextElement.Foreground" Value="White"/></Style>
+  <Style Selector="Button.lime:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#C9E69B"/><Setter Property="TextElement.Foreground" Value="#274E3D"/></Style>
+  <Style Selector="Button.primary:pressed /template/ ContentPresenter"><Setter Property="Opacity" Value="0.75"/></Style>
+  <Style Selector="Button.nav"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="15,13"/><Setter Property="Foreground" Value="#7E887D"/></Style>
+  <Style Selector="Button.nav.selected"><Setter Property="Background" Value="#EFFFFFFF"/><Setter Property="Foreground" Value="#274E3D"/></Style>
+  <Style Selector="Button.nav:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#E4E8DE"/><Setter Property="TextElement.Foreground" Value="#274E3D"/></Style>
+  <Style Selector="Button.link"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="0,6"/></Style>
+  <Style Selector="TextBox"><Setter Property="CornerRadius" Value="7"/><Setter Property="BorderBrush" Value="#E4E8DE"/></Style>
+  <Style Selector="NumericUpDown"><Setter Property="MinWidth" Value="100"/></Style>
+  <Style Selector="ToggleSwitch:checked /template/ Border#SwitchKnobBounds"><Setter Property="Background" Value="#274E3D"/></Style>
+</Styles>
